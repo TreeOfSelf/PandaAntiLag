@@ -8,46 +8,44 @@ import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.List;
+
 @Mixin(ProjectileEntity.class)
 public abstract class ThrownItemEntityMixin extends Entity {
 
+    @Unique
     private long lastCheck;
-    private int nearby;
+    @Unique
+    private int nearby = 1;
 
     public ThrownItemEntityMixin(EntityType<?> type, World world) {
         super(type, world);
     }
 
-    //Check enttiy type of villager
-    @Inject(at = @At("HEAD"), method = "tick", cancellable = true)
-    public void tick(CallbackInfo ci){
-        //Check initial nearby values
-        if(this.lastCheck==0 || System.currentTimeMillis() - this.lastCheck>0){
-            this.lastCheck = System.currentTimeMillis() + 10000;
+    @Inject(at = @At("HEAD"), method = "tick")
+    public void tick(CallbackInfo ci) {
+
+        if (this.lastCheck == 0 || System.currentTimeMillis() - this.lastCheck > 0) {
+            this.lastCheck = System.currentTimeMillis() + 10000 + (this.nearby * 10L);
             ServerWorld world = (ServerWorld) this.getWorld();
-
+            ProjectileEntity projectileEntity = (ProjectileEntity)(Object)this;
             ChunkPos chunkPos = this.getChunkPos();
-            this.nearby = world.getEntitiesByType(TypeFilter.instanceOf(ProjectileEntity.class), entity -> Math.abs(entity.getChunkPos().x - chunkPos.x) < 4 && Math.abs(entity.getChunkPos().z - chunkPos.z) < 4 ).size();
-            if(this.nearby > 75) {
-                float tickTimes = this.getServer().getAverageTickTime();
-                this.nearby = (int) (this.nearby / 200 + tickTimes/10);
-            }else{
-                this.nearby = 1;
+            List<? extends ProjectileEntity> nearbyEntities = world.getEntitiesByType(TypeFilter.instanceOf(ProjectileEntity.class), entity -> Math.abs(entity.getChunkPos().x - chunkPos.x) < 12 && Math.abs(entity.getChunkPos().z - chunkPos.z) < 12 && entity.getClass() == projectileEntity.getClass());
+            this.nearby = nearbyEntities.size();
+            if (this.nearby > 150) {
+                int over = this.nearby - 150;
+                for(int index = 0; index <= over; index++){
+                    nearbyEntities.getFirst().remove(RemovalReason.KILLED);
+                }
             }
-
-            if(this.nearby<1) this.nearby=1;
-
         }
 
-        if (this.age % this.nearby != 0) {
-            ci.cancel();
-        }
     }
 
-
-
 }
+
