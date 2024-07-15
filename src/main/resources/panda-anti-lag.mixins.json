@@ -1,12 +1,13 @@
 {
-	"required": true,
-	"package": "me.sebastian420.PandaAntiLag.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"mixins": [
-		"MixinLivingEntity",
-		"ThrownItemEntityMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
+  "required": true,
+  "package": "me.sebastian420.PandaAntiLag.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MixinLivingEntity",
+    "ServerLevelMixin",
+    "ThrownItemEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
 	}
 }
