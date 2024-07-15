@@ -7,8 +7,8 @@ public class LagPos {
     public final int z;
 
     public LagPos(ChunkPos chunkPos) {
-        this.x = (int) Math.floor(chunkPos.x / AntiLagSettings.regionSize);
-        this.z = (int) Math.floor(chunkPos.z / AntiLagSettings.regionSize);
+        this.x = chunkPos.x / AntiLagSettings.regionSize;
+        this.z = chunkPos.z / AntiLagSettings.regionSize;
     }
 
     public int hashCode() {
