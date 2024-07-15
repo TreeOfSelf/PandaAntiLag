@@ -40,7 +40,7 @@ public abstract class ServerLevelMixin {
     @Shadow public abstract void tickEntity(Entity entity);
     
     @Unique
-    private static final HashMap<LagPos, ChunkEntityData> chunkEntityDataMap = new HashMap<>();
+    private final HashMap<LagPos, ChunkEntityData> chunkEntityDataMap = new HashMap<>();
     @Unique
     private Profiler profiler;
 
@@ -74,16 +74,15 @@ public abstract class ServerLevelMixin {
                 TypeFilter.instanceOf(LivingEntity.class),
                 foundEntity -> {
                     LagPos entityLagPos = new LagPos(foundEntity.getChunkPos());
-
-                    return entityLagPos.x == lagPos.x &&
-                            entityLagPos.z == lagPos.z &&
+                    return Math.abs(entityLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
+                            Math.abs(entityLagPos.z - lagPos.z) < AntiLagSettings.regionBuffer &&
                             type.equals(getEntityType(foundEntity));
                 }
         ).size();
 
         if (mobCount > AntiLagSettings.minimumStagger) {
             float tickTimes = serverWorld.getServer().getAverageTickTime();
-            mobCount = (int) ((float) mobCount / AntiLagSettings.mobLenience + tickTimes/AntiLagSettings.tickTimeLenience);
+            mobCount = (int) (mobCount / AntiLagSettings.mobLenience + tickTimes/AntiLagSettings.tickTimeLenience);
             if (mobCount <= 0) mobCount = 1;
             chunkEntityData.setNearbyCount(type, mobCount);
         } else chunkEntityData.setNearbyCount(type, 1);
@@ -104,14 +103,14 @@ public abstract class ServerLevelMixin {
         instance.forEach((entity) -> {
 
             LagPos lagPos = new LagPos(entity.getChunkPos());
-            ChunkEntityData chunkEntityData = chunkEntityDataMap.getOrDefault(lagPos, new ChunkEntityData());
+            ChunkEntityData chunkEntityData = chunkEntityDataMap.computeIfAbsent(lagPos, k -> new ChunkEntityData());
             if(chunkEntityData.lastCheck==0 || currentTime - chunkEntityData.lastCheck>0) {
                 CheckCount(chunkEntityData, serverWorld, lagPos, "PEACEFUL");
                 CheckCount(chunkEntityData, serverWorld, lagPos, "MONSTER");
                 chunkEntityData.lastCheck = System.currentTimeMillis() + AntiLagSettings.updateInterval;
             }
 
-            boolean skip = serverWorld.getTime() % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
+            boolean skip = entity.age % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
 
             if (!entity.isRemoved() && !skip) {
                 if (this.shouldCancelSpawn(entity)) {
@@ -137,7 +136,5 @@ public abstract class ServerLevelMixin {
                 }
             }
         });
-
     }
-
 }
