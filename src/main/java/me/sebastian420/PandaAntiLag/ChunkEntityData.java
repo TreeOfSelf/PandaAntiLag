@@ -1,7 +1,5 @@
 package me.sebastian420.PandaAntiLag;
 
-import net.minecraft.entity.EntityType;
-
 import java.util.HashMap;
 import java.util.Map;
 

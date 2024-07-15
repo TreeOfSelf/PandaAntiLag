@@ -84,6 +84,7 @@ public abstract class ServerLevelMixin {
         if (mobCount > AntiLagSettings.minimumStagger) {
             float tickTimes = serverWorld.getServer().getAverageTickTime();
             mobCount = (int) ((float) mobCount / AntiLagSettings.mobLenience + tickTimes/AntiLagSettings.tickTimeLenience);
+            if (mobCount <= 0) mobCount = 1;
             chunkEntityData.setNearbyCount(type, mobCount);
         } else chunkEntityData.setNearbyCount(type, 1);
     }
@@ -107,7 +108,7 @@ public abstract class ServerLevelMixin {
             if(chunkEntityData.lastCheck==0 || currentTime - chunkEntityData.lastCheck>0) {
                 CheckCount(chunkEntityData, serverWorld, lagPos, "PEACEFUL");
                 CheckCount(chunkEntityData, serverWorld, lagPos, "MONSTER");
-                chunkEntityData.lastCheck = System.currentTimeMillis() + 10000;
+                chunkEntityData.lastCheck = System.currentTimeMillis() + AntiLagSettings.updateInterval;
             }
 
             boolean skip = serverWorld.getTime() % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
