@@ -12,6 +12,7 @@ import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.profiler.Profiler;
+import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.EntityList;
 import net.minecraft.world.tick.TickManager;
 import org.spongepowered.asm.mixin.Final;
@@ -33,7 +34,6 @@ public abstract class ServerLevelMixin {
 
     @Shadow public abstract TickManager getTickManager();
 
-    @Shadow protected abstract boolean shouldCancelSpawn(Entity entity);
 
     @Shadow @Final private ServerChunkManager chunkManager;
 
@@ -65,7 +65,8 @@ public abstract class ServerLevelMixin {
 
     @Inject(method = "tick", at = @At(value = "HEAD"))
     private void onTickStart(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
-        profiler = ((ServerWorld) (Object) this).getProfiler();
+        profiler =  Profilers.get();
+
     }
 
     @Unique
@@ -113,9 +114,7 @@ public abstract class ServerLevelMixin {
             boolean skip = entity.age % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
 
             if (!entity.isRemoved() && !skip) {
-                if (this.shouldCancelSpawn(entity)) {
-                    entity.discard();
-                } else if (!getTickManager().shouldSkipTick(entity)) {
+                if (!getTickManager().shouldSkipTick(entity)) {
                     profiler.push("checkDespawn");
                     entity.checkDespawn();
                     profiler.pop();
