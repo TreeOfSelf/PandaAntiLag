@@ -1,4 +1,4 @@
-package me.sebastian420.PandaAntiLag;
+package me.TreeOfSelf.PandaAntiLag;
 
 import net.minecraft.util.math.ChunkPos;
 

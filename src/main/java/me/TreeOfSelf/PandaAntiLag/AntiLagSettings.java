@@ -1,4 +1,4 @@
-package me.sebastian420.PandaAntiLag;
+package me.TreeOfSelf.PandaAntiLag;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

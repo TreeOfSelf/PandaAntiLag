@@ -1,7 +1,7 @@
-package me.sebastian420.PandaAntiLag.mixin;
+package me.TreeOfSelf.PandaAntiLag.mixin;
 
-import me.sebastian420.PandaAntiLag.AntiLagSettings;
-import me.sebastian420.PandaAntiLag.LagPos;
+import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
+import me.TreeOfSelf.PandaAntiLag.LagPos;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.projectile.ProjectileEntity;

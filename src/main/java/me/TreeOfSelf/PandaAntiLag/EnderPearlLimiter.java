@@ -1,4 +1,4 @@
-package me.sebastian420.PandaAntiLag;
+package me.TreeOfSelf.PandaAntiLag;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;

@@ -1,8 +1,8 @@
-package me.sebastian420.PandaAntiLag.mixin;
+package me.TreeOfSelf.PandaAntiLag.mixin;
 
-import me.sebastian420.PandaAntiLag.AntiLagSettings;
-import me.sebastian420.PandaAntiLag.ChunkEntityData;
-import me.sebastian420.PandaAntiLag.LagPos;
+import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
+import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
+import me.TreeOfSelf.PandaAntiLag.LagPos;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnGroup;

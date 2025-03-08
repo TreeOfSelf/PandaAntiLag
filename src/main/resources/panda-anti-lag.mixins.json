@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "me.sebastian420.PandaAntiLag.mixin",
+  "package": "me.TreeOfSelf.PandaAntiLag.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ProjectileEntityMixin",

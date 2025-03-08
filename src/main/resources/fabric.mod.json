@@ -5,7 +5,7 @@
 	"name": "panda-anti-lag",
 	"description": "Stop entity lag",
 	"authors": [
-		"Sebastian420"
+		"TreeOfSelf"
 	],
 	"contact": {
 		"homepage": "",
@@ -16,7 +16,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"me.sebastian420.PandaAntiLag.PandaAntiLag"
+          "me.TreeOfSelf.PandaAntiLag.PandaAntiLag"
 		]
 	},
 	"mixins": [
