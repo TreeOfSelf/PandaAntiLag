@@ -81,9 +81,9 @@ public abstract class ServerLevelMixin {
                 }
         ).size();
 
-        if (mobCount > AntiLagSettings.minimumStagger) {
+        if (mobCount > AntiLagSettings.minimumRegionMobs) {
             float tickTimes = serverWorld.getServer().getAverageTickTime();
-            mobCount = (int) (mobCount / AntiLagSettings.mobLenience + tickTimes/AntiLagSettings.tickTimeLenience);
+            mobCount = (int) (mobCount / AntiLagSettings.mobStaggerLenience + tickTimes/AntiLagSettings.tickTimeLenience);
             if (mobCount <= 0) mobCount = 1;
             chunkEntityData.setNearbyCount(type, mobCount);
         } else chunkEntityData.setNearbyCount(type, 1);
