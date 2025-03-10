@@ -13,7 +13,7 @@ And the staggering of mob ticks allows for players to have thousands of mobs in 
 
 ## Configuring
 
-config/per_world_seed.json generated at runtime, an entry for each dimension will be made.
+config/PandaAntiLag.json generated at runtime, an entry for each dimension will be made.
 
 ```
 {
@@ -25,7 +25,7 @@ config/per_world_seed.json generated at runtime, an entry for each dimension wil
   "tickTimeLenience": 10, //Higher values = MSPT affects mob staggering less
   "updateInterval": 10000, //How often to allow chunks to count entities (ms)
   "enderPearlUpdateInterval": 10000, //How often to check for a players max enderpearls (ms)
-  "maxEnderPearlsPerPlayer": 2 //Max amount of ender pearls a player can have loaded
+  "maxEnderPearlsPerPlayer": 20 //Max amount of ender pearls a player can have loaded
 }
 ```
 
