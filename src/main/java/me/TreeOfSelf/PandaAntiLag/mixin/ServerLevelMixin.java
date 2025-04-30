@@ -8,9 +8,11 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.boss.dragon.EnderDragonEntity;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.server.world.ChunkTicketManager;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.TypeFilter;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.EntityList;
@@ -38,7 +40,11 @@ public abstract class ServerLevelMixin {
     @Shadow @Final private ServerChunkManager chunkManager;
 
     @Shadow public abstract void tickEntity(Entity entity);
-    
+
+    @Shadow public abstract ServerChunkManager getChunkManager();
+
+    @Shadow public abstract boolean shouldTickChunkAt(ChunkPos pos);
+
     @Unique
     private final HashMap<LagPos, ChunkEntityData> chunkEntityDataMap = new HashMap<>();
     @Unique
@@ -118,7 +124,7 @@ public abstract class ServerLevelMixin {
                     profiler.push("checkDespawn");
                     entity.checkDespawn();
                     profiler.pop();
-                    if (this.chunkManager.chunkLoadingManager.getTicketManager().shouldTickEntities(entity.getChunkPos().toLong())) {
+                    if (shouldTickChunkAt(entity.getChunkPos())) {
                         Entity entity2 = entity.getVehicle();
                         if (entity2 != null) {
                             if (!entity2.isRemoved() && entity2.hasPassenger(entity)) {
