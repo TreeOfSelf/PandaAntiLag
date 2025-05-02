@@ -38,9 +38,7 @@ public abstract class ProjectileEntityMixin extends Entity {
         );
 
         int nearby = nearbyEntities.size();
-
-        PandaAntiLag.LOGGER.info("nearby {}", nearby);
-
+        
         if (nearby > AntiLagSettings.projectileMax) {
             int over = (nearby - AntiLagSettings.projectileMax);
             for (int index = 0; index <= over; index++) {
