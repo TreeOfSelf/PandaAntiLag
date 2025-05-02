@@ -31,9 +31,10 @@ public abstract class ProjectileEntityMixin extends Entity {
                 TypeFilter.instanceOf(ProjectileEntity.class),
                 entity -> {
                     LagPos thisLagPos = new LagPos(entity.getChunkPos());
-                    return Math.abs(thisLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
+                    return true;
+                    /*return Math.abs(thisLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
                             Math.abs(thisLagPos.z - lagPos.z) < AntiLagSettings.regionBuffer &&
-                            entity.getClass() == projectileEntity.getClass();
+                            entity.getClass() == projectileEntity.getClass();*/
                 }
         );
 
