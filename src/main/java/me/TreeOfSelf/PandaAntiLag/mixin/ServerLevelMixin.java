@@ -4,6 +4,7 @@ import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import me.TreeOfSelf.PandaAntiLag.LagPos;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.boss.dragon.EnderDragonEntity;
@@ -124,7 +125,7 @@ public abstract class ServerLevelMixin {
 
             boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
 
-            if (!entity.isRemoved() && !skip) {
+            if (!entity.isRemoved() && (!skip || entity.getType() == EntityType.PLAYER )) {
                 if (!getTickManager().shouldSkipTick(entity)) {
                     profiler.push("checkDespawn");
                     entity.checkDespawn();
