@@ -149,39 +149,5 @@ public abstract class ServerLevelMixin {
         });
 
 
-        /*instance.forEach((entity) -> {
-
-            LagPos lagPos = new LagPos(entity.getChunkPos());
-            ChunkEntityData chunkEntityData = chunkEntityDataMap.computeIfAbsent(lagPos, k -> new ChunkEntityData());
-            if(chunkEntityData.lastCheck==0 || currentTime - chunkEntityData.lastCheck>0) {
-                CheckCount(chunkEntityData, serverWorld, lagPos, "PEACEFUL");
-                CheckCount(chunkEntityData, serverWorld, lagPos, "MONSTER");
-                chunkEntityData.lastCheck = System.currentTimeMillis() + AntiLagSettings.updateInterval;
-            }
-
-            boolean skip = entity.age % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
-
-            if (!entity.isRemoved() && !skip) {
-                if (!getTickManager().shouldSkipTick(entity)) {
-                    profiler.push("checkDespawn");
-                    entity.checkDespawn();
-                    profiler.pop();
-                    if (shouldTickChunkAt(entity.getChunkPos())) {
-                        Entity entity2 = entity.getVehicle();
-                        if (entity2 != null) {
-                            if (!entity2.isRemoved() && entity2.hasPassenger(entity)) {
-                                return;
-                            }
-
-                            entity.stopRiding();
-                        }
-
-                        profiler.push("tick");
-                        this.tickEntity(entity);
-                        profiler.pop();
-                    }
-                }
-            }
-        });*/
     }
 }
