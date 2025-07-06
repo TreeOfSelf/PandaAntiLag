@@ -55,6 +55,7 @@ public abstract class ServerLevelMixin {
 
     @Unique
     public String getEntityType(Entity entity){
+        if (entity instanceof LivingEntity) return "NULL";
         if(entity instanceof EnderDragonEntity) return "NULL";
         if(entity.getType().getSpawnGroup() == SpawnGroup.MONSTER){
             return "MONSTER";
