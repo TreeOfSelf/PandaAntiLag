@@ -24,6 +24,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -52,53 +53,59 @@ public abstract class ServerLevelMixin {
     private final HashMap<LagPos, ChunkEntityData> chunkEntityDataMap = new HashMap<>();
     @Unique
     private Profiler profiler;
-
     @Unique
-    public String getEntityType(Entity entity){
-        if (entity instanceof LivingEntity) return "NULL";
-        if(entity instanceof EnderDragonEntity) return "NULL";
-        if(entity.getType().getSpawnGroup() == SpawnGroup.MONSTER){
-            return "MONSTER";
-        }
-        if(entity.getType().getSpawnGroup() == SpawnGroup.CREATURE ||
-                entity.getType().getSpawnGroup() == SpawnGroup.AXOLOTLS ||
-                entity.getType().getSpawnGroup() == SpawnGroup.UNDERGROUND_WATER_CREATURE ||
-                entity.getType().getSpawnGroup() == SpawnGroup.AMBIENT ||
-                entity.getType().getSpawnGroup() == SpawnGroup.WATER_AMBIENT ||
-                entity.getType().getSpawnGroup() == SpawnGroup.MISC ||
-                entity.getType().getSpawnGroup() == SpawnGroup.WATER_CREATURE){
-            return "PEACEFUL";
-        }
-        if(entity instanceof VillagerEntity) return "PEACEFUL";
-        return "NULL";
+    private final Map<EntityType<?>, Integer> entityTypeCache = new HashMap<>();
+
+    @Unique  
+    public int getEntityType(Entity entity) {
+        if (!(entity instanceof LivingEntity)) return ChunkEntityData.NULL_TYPE;
+        if (entity instanceof EnderDragonEntity) return ChunkEntityData.NULL_TYPE;
+        if (entity instanceof VillagerEntity) return ChunkEntityData.PEACEFUL_TYPE;
+        
+        return entityTypeCache.computeIfAbsent(entity.getType(), type -> {
+            SpawnGroup group = type.getSpawnGroup();
+            if (group == SpawnGroup.MONSTER) return ChunkEntityData.MONSTER_TYPE;
+            if (group == SpawnGroup.CREATURE || group == SpawnGroup.AXOLOTLS || 
+                group == SpawnGroup.UNDERGROUND_WATER_CREATURE || group == SpawnGroup.AMBIENT ||
+                group == SpawnGroup.WATER_AMBIENT || group == SpawnGroup.MISC ||
+                group == SpawnGroup.WATER_CREATURE) return ChunkEntityData.PEACEFUL_TYPE;
+            return ChunkEntityData.NULL_TYPE;
+        });
     }
 
     @Inject(method = "tick", at = @At(value = "HEAD"))
     private void onTickStart(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         profiler =  Profilers.get();
-
     }
 
     @Unique
-    public void CheckCount(ChunkEntityData chunkEntityData, ServerWorld serverWorld, LagPos lagPos, String type){
-        int mobCount = serverWorld.getEntitiesByType(
-                TypeFilter.instanceOf(LivingEntity.class),
-                foundEntity -> {
-                    LagPos entityLagPos = new LagPos(foundEntity.getChunkPos());
-                    return Math.abs(entityLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
-                            Math.abs(entityLagPos.z - lagPos.z) < AntiLagSettings.regionBuffer &&
-                            type.equals(getEntityType(foundEntity));
+    public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerWorld serverWorld, LagPos lagPos) {
+        int[] counts = new int[3];
+        
+        serverWorld.getEntitiesByType(
+            TypeFilter.instanceOf(LivingEntity.class),
+            foundEntity -> {
+                LagPos entityLagPos = LagPos.fromChunkPos(foundEntity.getChunkPos());
+                if (Math.abs(entityLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
+                    Math.abs(entityLagPos.z - lagPos.z) < AntiLagSettings.regionBuffer) {
+                    counts[getEntityType(foundEntity)]++;
                 }
-        ).size();
+                return false;
+            }
+        );
 
-        if (mobCount > AntiLagSettings.minimumRegionMobs) {
-            float tickTimes = serverWorld.getServer().getAverageTickTime();
-            mobCount = (int) ((float) mobCount / AntiLagSettings.mobStaggerLenience + tickTimes/AntiLagSettings.tickTimeLenience);
-            if (mobCount <= 0) mobCount = 1;
+        float tickTimes = serverWorld.getServer().getAverageTickTime();
+        for (int type = 1; type < 3; type++) {
+            int mobCount = counts[type];
+            if (mobCount > AntiLagSettings.minimumRegionMobs) {
+                mobCount = (int) ((float) mobCount / AntiLagSettings.mobStaggerLenience + tickTimes/AntiLagSettings.tickTimeLenience);
+                if (mobCount <= 0) mobCount = 1;
+            } else {
+                mobCount = 1;
+            }
             chunkEntityData.setNearbyCount(type, mobCount);
-        } else chunkEntityData.setNearbyCount(type, 1);
+        }
     }
-
 
     @Redirect(
             method = "tick",
@@ -113,15 +120,12 @@ public abstract class ServerLevelMixin {
         ServerWorld serverWorld = (ServerWorld)(Object)this;
         long currentTime = System.currentTimeMillis();
 
-
         instance.forEach((entity) -> {
-
-            LagPos lagPos = new LagPos(entity.getChunkPos());
+            LagPos lagPos = LagPos.fromChunkPos(entity.getChunkPos());
             ChunkEntityData chunkEntityData = chunkEntityDataMap.computeIfAbsent(lagPos, k -> new ChunkEntityData());
-            if(chunkEntityData.lastCheck==0 || currentTime - chunkEntityData.lastCheck>0) {
-                CheckCount(chunkEntityData, serverWorld, lagPos, "PEACEFUL");
-                CheckCount(chunkEntityData, serverWorld, lagPos, "MONSTER");
-                chunkEntityData.lastCheck = System.currentTimeMillis() + AntiLagSettings.updateInterval;
+            if(chunkEntityData.lastCheck==0 || currentTime > chunkEntityData.lastCheck) {
+                chunkEntityData.lastCheck = currentTime + AntiLagSettings.updateInterval;
+                updateEntityCounts(chunkEntityData, serverWorld, lagPos);
             }
 
             boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
@@ -148,7 +152,5 @@ public abstract class ServerLevelMixin {
                 }
             }
         });
-
-
     }
 }

@@ -1,24 +1,27 @@
 package me.TreeOfSelf.PandaAntiLag;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class ChunkEntityData {
-    private final Map<String, Integer> nearbyCounts;
+    public static final int NULL_TYPE = 0;
+    public static final int MONSTER_TYPE = 1; 
+    public static final int PEACEFUL_TYPE = 2;
+
+    private final int[] nearbyCounts = new int[3];
 
     public long lastCheck;
 
     public ChunkEntityData() {
-        this.nearbyCounts = new HashMap<>();
+        this.nearbyCounts[MONSTER_TYPE] = 1;
+        this.nearbyCounts[PEACEFUL_TYPE] = 1;
         this.lastCheck = 0;
     }
 
-    public int getNearbyCount(String entityType) {
-        return nearbyCounts.getOrDefault(entityType, 1);
+    public int getNearbyCount(int entityType) {
+        return entityType == NULL_TYPE ? 1 : nearbyCounts[entityType];
     }
 
-    public void setNearbyCount(String entityType, int amount) {
-        nearbyCounts.put(entityType, amount);
+    public void setNearbyCount(int entityType, int amount) {
+        if (entityType != NULL_TYPE) {
+            nearbyCounts[entityType] = amount;
+        }
     }
-
 }

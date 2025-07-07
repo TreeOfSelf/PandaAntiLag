@@ -14,6 +14,7 @@ public class AntiLagSettings {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static int regionSize = 6;
+    public static int regionSizeBits = 2;
     public static int regionBuffer = 1;
     public static int minimumRegionMobs = 75;
     public static int projectileMax = 150;
@@ -29,6 +30,7 @@ public class AntiLagSettings {
                 JsonObject json = GSON.fromJson(reader, JsonObject.class);
 
                 regionSize = json.has("regionSize") ? json.get("regionSize").getAsInt() : regionSize;
+                regionSizeBits = json.has("regionSizeBits") ? json.get("regionSizeBits").getAsInt() : regionSizeBits;
                 regionBuffer = json.has("regionBuffer") ? json.get("regionBuffer").getAsInt() : regionBuffer;
                 minimumRegionMobs = json.has("minimumRegionMobs") ? json.get("minimumRegionMobs").getAsInt() : minimumRegionMobs;
                 projectileMax = json.has("projectileMax") ? json.get("projectileMax").getAsInt() : projectileMax;
@@ -46,6 +48,7 @@ public class AntiLagSettings {
     public static void saveConfig() {
         JsonObject json = new JsonObject();
         json.addProperty("regionSize", regionSize);
+        json.addProperty("regionSizeBits", regionSizeBits);
         json.addProperty("regionBuffer", regionBuffer);
         json.addProperty("minimumRegionMobs", minimumRegionMobs);
         json.addProperty("projectileMax", projectileMax);
