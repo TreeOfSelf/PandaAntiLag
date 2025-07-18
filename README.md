@@ -29,6 +29,10 @@ config/PandaAntiLag.json generated at runtime, an entry for each dimension will 
 }
 ```
 
+## Try it out
+`hardcoreanarchy.gay`   (Deathban Anarchy)  
+`sky.hardcoreanarchy.gay`   (Skyblock Anarchy)
+
 ## Support
 
 [Support discord here!]( https://discord.gg/3tP3Tqu983)
