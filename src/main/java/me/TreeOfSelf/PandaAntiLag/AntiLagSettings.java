@@ -17,8 +17,10 @@ public class AntiLagSettings {
     public static int regionSizeBits = 2;
     public static int regionBuffer = 1;
     public static int minimumRegionMobs = 75;
+    public static int minimumRegionVehicle = 75;
     public static int projectileMax = 150;
     public static int mobStaggerLenience = 200;
+    public static int vehicleStaggerLenience = 200;
     public static int tickTimeLenience = 10;
     public static long updateInterval = 10000;
     public static long enderPearlUpdateInterval = 10000;
@@ -33,8 +35,10 @@ public class AntiLagSettings {
                 regionSizeBits = json.has("regionSizeBits") ? json.get("regionSizeBits").getAsInt() : regionSizeBits;
                 regionBuffer = json.has("regionBuffer") ? json.get("regionBuffer").getAsInt() : regionBuffer;
                 minimumRegionMobs = json.has("minimumRegionMobs") ? json.get("minimumRegionMobs").getAsInt() : minimumRegionMobs;
+                minimumRegionVehicle = json.has("minimumRegionVehicle") ? json.get("minimumRegionVehicle").getAsInt() : minimumRegionVehicle;
                 projectileMax = json.has("projectileMax") ? json.get("projectileMax").getAsInt() : projectileMax;
                 mobStaggerLenience = json.has("mobStaggerLenience") ? json.get("mobStaggerLenience").getAsInt() : mobStaggerLenience;
+                vehicleStaggerLenience = json.has("vehicleStaggerLenience") ? json.get("vehicleStaggerLenience").getAsInt() : vehicleStaggerLenience;
                 tickTimeLenience = json.has("tickTimeLenience") ? json.get("tickTimeLenience").getAsInt() : tickTimeLenience;
                 updateInterval = json.has("updateInterval") ? json.get("updateInterval").getAsLong() : updateInterval;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
@@ -51,8 +55,10 @@ public class AntiLagSettings {
         json.addProperty("regionSizeBits", regionSizeBits);
         json.addProperty("regionBuffer", regionBuffer);
         json.addProperty("minimumRegionMobs", minimumRegionMobs);
+        json.addProperty("minimumRegionVehicle", minimumRegionVehicle);
         json.addProperty("projectileMax", projectileMax);
         json.addProperty("mobStaggerLenience", mobStaggerLenience);
+        json.addProperty("vehicleStaggerLenience", vehicleStaggerLenience);
         json.addProperty("tickTimeLenience", tickTimeLenience);
         json.addProperty("updateInterval", updateInterval);
         json.addProperty("enderPearlUpdateInterval", enderPearlUpdateInterval);

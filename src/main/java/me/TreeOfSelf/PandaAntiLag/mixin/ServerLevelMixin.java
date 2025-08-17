@@ -9,6 +9,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.boss.dragon.EnderDragonEntity;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.entity.vehicle.HopperMinecartEntity;
+import net.minecraft.entity.vehicle.VehicleEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketManager;
 import net.minecraft.server.world.ServerChunkManager;
@@ -58,6 +60,7 @@ public abstract class ServerLevelMixin {
 
     @Unique  
     public int getEntityType(Entity entity) {
+        if (entity instanceof VehicleEntity) return ChunkEntityData.VEHICLE_TYPE;
         if (!(entity instanceof LivingEntity)) return ChunkEntityData.NULL_TYPE;
         if (entity instanceof EnderDragonEntity) return ChunkEntityData.NULL_TYPE;
         if (entity instanceof VillagerEntity) return ChunkEntityData.PEACEFUL_TYPE;
@@ -77,33 +80,45 @@ public abstract class ServerLevelMixin {
     private void onTickStart(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         profiler =  Profilers.get();
     }
-
     @Unique
     public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerWorld serverWorld, LagPos lagPos) {
-        int[] counts = new int[3];
+        int[] counts = new int[4];
         
         serverWorld.getEntitiesByType(
-            TypeFilter.instanceOf(LivingEntity.class),
+            TypeFilter.instanceOf(Entity.class),
             foundEntity -> {
                 LagPos entityLagPos = LagPos.fromChunkPos(foundEntity.getChunkPos());
                 if (Math.abs(entityLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
                     Math.abs(entityLagPos.z - lagPos.z) < AntiLagSettings.regionBuffer) {
-                    counts[getEntityType(foundEntity)]++;
+                    int entityType = getEntityType(foundEntity);
+                    if (entityType != ChunkEntityData.NULL_TYPE) {
+                        counts[entityType]++;
+                    }
                 }
                 return false;
             }
         );
 
         float tickTimes = serverWorld.getServer().getAverageTickTime();
-        for (int type = 1; type < 3; type++) {
-            int mobCount = counts[type];
-            if (mobCount > AntiLagSettings.minimumRegionMobs) {
-                mobCount = (int) ((float) mobCount / AntiLagSettings.mobStaggerLenience + tickTimes/AntiLagSettings.tickTimeLenience);
-                if (mobCount <= 0) mobCount = 1;
+        for (int type = 1; type < 4; type++) {
+            int entityCount = counts[type];
+            int minimumRegion, staggerLenience;
+            
+            if (type == ChunkEntityData.VEHICLE_TYPE) {
+                minimumRegion = AntiLagSettings.minimumRegionVehicle;
+                staggerLenience = AntiLagSettings.vehicleStaggerLenience;
             } else {
-                mobCount = 1;
+                minimumRegion = AntiLagSettings.minimumRegionMobs;
+                staggerLenience = AntiLagSettings.mobStaggerLenience;
             }
-            chunkEntityData.setNearbyCount(type, mobCount);
+            
+            if (entityCount > minimumRegion) {
+                entityCount = (int) ((float) entityCount / staggerLenience + tickTimes/AntiLagSettings.tickTimeLenience);
+                if (entityCount <= 0) entityCount = 1;
+            } else {
+                entityCount = 1;
+            }
+            chunkEntityData.setNearbyCount(type, entityCount);
         }
     }
 
