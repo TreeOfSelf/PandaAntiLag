@@ -10,6 +10,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.ai.goal.EatGrassGoal;
 import net.minecraft.entity.boss.dragon.EnderDragonEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.*;
 import net.minecraft.entity.vehicle.VehicleEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -193,7 +195,9 @@ public abstract class ServerLevelMixin {
                     }
                     case ArmadilloEntity armadilloEntity -> {
                         int cooldown = ((ArmadilloEntityAccessor) armadilloEntity).getNextScuteShedCooldown();
-                        ((ArmadilloEntityAccessor) armadilloEntity).setNextScuteShedCooldown(cooldown - 1);
+                        if (cooldown > 0) {
+                            ((ArmadilloEntityAccessor) armadilloEntity).setNextScuteShedCooldown(cooldown - 1);
+                        }
                     }
                     case ChickenEntity chickenEntity -> chickenEntity.eggLayTime--;
                     case TadpoleEntity tadpoleEntity -> {
@@ -211,11 +215,6 @@ public abstract class ServerLevelMixin {
                             int levelUpTimer = ((VillagerEntityAccessor) villagerEntity).getLevelUpTimer();
                             if (levelUpTimer > 0) {
                                 ((VillagerEntityAccessor) villagerEntity).setLevelUpTimer(levelUpTimer - 1);
-                                if (levelUpTimer - 1 <= 0) {
-                                    if (((VillagerEntityAccessor) villagerEntity).isLevelingUp()) {
-                                        ((VillagerEntityAccessor) villagerEntity).setLevelingUp(false);
-                                    }
-                                }
                             }
                         }
                     }
