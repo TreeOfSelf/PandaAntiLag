@@ -3,20 +3,21 @@ package me.TreeOfSelf.PandaAntiLag.mixin;
 import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import me.TreeOfSelf.PandaAntiLag.LagPos;
+import me.TreeOfSelf.PandaAntiLag.mixin.accessor.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.ai.goal.EatGrassGoal;
 import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.entity.vehicle.HopperMinecartEntity;
+import net.minecraft.entity.passive.*;
 import net.minecraft.entity.vehicle.VehicleEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ChunkTicketManager;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.EntityList;
@@ -64,7 +65,8 @@ public abstract class ServerLevelMixin {
         if (!(entity instanceof LivingEntity)) return ChunkEntityData.NULL_TYPE;
         if (entity instanceof EnderDragonEntity) return ChunkEntityData.NULL_TYPE;
         if (entity instanceof VillagerEntity) return ChunkEntityData.PEACEFUL_TYPE;
-        
+        if (entity instanceof WanderingTraderEntity) return ChunkEntityData.PEACEFUL_TYPE;
+
         return entityTypeCache.computeIfAbsent(entity.getType(), type -> {
             SpawnGroup group = type.getSpawnGroup();
             if (group == SpawnGroup.MONSTER) return ChunkEntityData.MONSTER_TYPE;
@@ -145,7 +147,7 @@ public abstract class ServerLevelMixin {
 
             boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
 
-            if (!entity.isRemoved() && (!skip || entity.getType() == EntityType.PLAYER )) {
+            if (!entity.isRemoved() && (!skip || entity.getType() == EntityType.PLAYER || entity.hasControllingPassenger())) {
                 if (!getTickManager().shouldSkipTick(entity)) {
                     profiler.push("checkDespawn");
                     entity.checkDespawn();
@@ -156,7 +158,6 @@ public abstract class ServerLevelMixin {
                             if (!entity2.isRemoved() && entity2.hasPassenger(entity)) {
                                 return;
                             }
-
                             entity.stopRiding();
                         }
 
@@ -165,7 +166,85 @@ public abstract class ServerLevelMixin {
                         profiler.pop();
                     }
                 }
+            } else if (skip) {
+                entity.age++;
+
+                if (entity instanceof PassiveEntity passiveEntity) {
+                    int i = passiveEntity.getBreedingAge();
+                    if (i < 0) {
+                        ++i;
+                        passiveEntity.setBreedingAge(i);
+                    } else if (i > 0) {
+                        --i;
+                        passiveEntity.setBreedingAge(i);
+                    }
+                }
+
+                switch (entity) {
+                    case SheepEntity sheepEntity -> {
+                        EatGrassGoal eatGrassGoal = ((SheepEntityAccessor) sheepEntity).getEatGrassGoal();
+                        if (eatGrassGoal != null) {
+                            if (eatGrassGoal.shouldContinue()) {
+                                eatGrassGoal.tick();
+                            } else if (eatGrassGoal.canStart()) {
+                                eatGrassGoal.start();
+                            }
+                        }
+                    }
+                    case ArmadilloEntity armadilloEntity -> {
+                        int cooldown = ((ArmadilloEntityAccessor) armadilloEntity).getNextScuteShedCooldown();
+                        ((ArmadilloEntityAccessor) armadilloEntity).setNextScuteShedCooldown(cooldown - 1);
+                    }
+                    case ChickenEntity chickenEntity -> chickenEntity.eggLayTime--;
+                    case TadpoleEntity tadpoleEntity -> {
+                        int tadPoleAge = ((TadpoleEntityAccessor) tadpoleEntity).getTadpoleAge();
+                        ((TadpoleEntityAccessor) tadpoleEntity).setTadpoleAge(tadPoleAge + 1);
+                    }
+                    case TurtleEntity turtleEntity -> {
+                        if (turtleEntity.isDiggingSand()) {
+                            int sandDiggingCounter = ((TurtleEntityAccessor) turtleEntity).getSandDiggingCounter();
+                            ((TurtleEntityAccessor) turtleEntity).setSandDiggingCounter(sandDiggingCounter + 1);
+                        }
+                    }
+                    case VillagerEntity villagerEntity -> {
+                        if (!villagerEntity.hasCustomer()) {
+                            int levelUpTimer = ((VillagerEntityAccessor) villagerEntity).getLevelUpTimer();
+                            if (levelUpTimer > 0) {
+                                ((VillagerEntityAccessor) villagerEntity).setLevelUpTimer(levelUpTimer - 1);
+                                if (levelUpTimer - 1 <= 0) {
+                                    if (((VillagerEntityAccessor) villagerEntity).isLevelingUp()) {
+                                        ((VillagerEntityAccessor) villagerEntity).setLevelingUp(false);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    case BeeEntity beeEntity -> {
+                        if (beeEntity.hasStung()) {
+                            int ticksSinceSting = ((BeeEntityAccessor) beeEntity).getTicksSinceSting();
+                            ((BeeEntityAccessor) beeEntity).setTicksSinceSting(ticksSinceSting + 1);
+                        }
+                        if (!beeEntity.hasNectar()) {
+                            int ticksSincePollination = ((BeeEntityAccessor) beeEntity).getTicksSincePollination();
+                            ((BeeEntityAccessor) beeEntity).setTicksSincePollination(ticksSincePollination + 1);
+                        }
+                        int cannotEnterHiveTicks = ((BeeEntityAccessor) beeEntity).getCannotEnterHiveTicks();
+                        if (cannotEnterHiveTicks > 0) {
+                            ((BeeEntityAccessor) beeEntity).setCannotEnterHiveTicks(cannotEnterHiveTicks - 1);
+                        }
+                        int ticksLeftToFindHive = ((BeeEntityAccessor) beeEntity).getTicksLeftToFindHive();
+                        if (ticksLeftToFindHive > 0) {
+                            ((BeeEntityAccessor) beeEntity).setTicksLeftToFindHive(ticksLeftToFindHive - 1);
+                        }
+                        int ticksUntilCanPollinate = ((BeeEntityAccessor) beeEntity).getTicksUntilCanPollinate();
+                        if (ticksUntilCanPollinate > 0) {
+                            ((BeeEntityAccessor) beeEntity).setTicksUntilCanPollinate(ticksUntilCanPollinate - 1);
+                        }
+                    }
+                    default -> {}
+                }
             }
+
         });
     }
 }

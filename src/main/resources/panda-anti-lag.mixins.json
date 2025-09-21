@@ -4,7 +4,14 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ProjectileEntityMixin",
-    "ServerLevelMixin"
+    "ServerLevelMixin",
+    "accessor.ArmadilloEntityAccessor",
+    "accessor.BeeEntityAccessor",
+    "accessor.SheepEntityAccessor",
+    "accessor.TadpoleEntityAccessor",
+    "accessor.TurtleEntityAccessor",
+    "accessor.VillagerEntityAccessor",
+    "accessor.WanderingTraderEntityAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
