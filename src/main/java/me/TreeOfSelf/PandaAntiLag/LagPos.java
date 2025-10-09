@@ -22,11 +22,6 @@ public class LagPos {
         this.z = z;
     }
 
-    public LagPos(ChunkPos chunkPos) {
-        this.x = chunkPos.x >> AntiLagSettings.regionSizeBits;
-        this.z = chunkPos.z >> AntiLagSettings.regionSizeBits;
-    }
-
     public int hashCode() {
         return (x << 16) ^ z;
     }

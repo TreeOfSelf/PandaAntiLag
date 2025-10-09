@@ -10,8 +10,7 @@
     "accessor.SheepEntityAccessor",
     "accessor.TadpoleEntityAccessor",
     "accessor.TurtleEntityAccessor",
-    "accessor.VillagerEntityAccessor",
-    "accessor.WanderingTraderEntityAccessor"
+    "accessor.VillagerEntityAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

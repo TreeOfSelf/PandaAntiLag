@@ -11,10 +11,4 @@ public interface VillagerEntityAccessor {
 
     @Accessor("levelUpTimer")
     void setLevelUpTimer(int timer);
-
-    @Accessor("levelingUp")
-    boolean isLevelingUp();
-
-    @Accessor("levelingUp")
-    void setLevelingUp(boolean levelingUp);
 }

@@ -33,6 +33,7 @@ public abstract class ProjectileEntityMixin extends Entity {
         super(type, world);
     }
 
+    @Unique
     private static <T extends ProjectileEntity> void handleProjectileSpawn(T projectile, ServerWorld world) {
         LagPos lagPos = LagPos.fromChunkPos(projectile.getChunkPos());
         long currentTime = System.currentTimeMillis();
