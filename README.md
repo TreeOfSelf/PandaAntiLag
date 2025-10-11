@@ -13,7 +13,7 @@ And the staggering of mob ticks allows for players to have thousands of mobs in 
 
 ## Configuring
 
-config/PandaAntiLag.json generated at runtime, an entry for each dimension will be made.
+config/PandaAntiLag.json generated at runtime
 
 ```
 {
