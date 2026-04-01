@@ -1,38 +1,38 @@
 package me.TreeOfSelf.PandaAntiLag.mixin.accessor;
 
-import net.minecraft.entity.passive.BeeEntity;
+import net.minecraft.world.entity.animal.bee.Bee;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(BeeEntity.class)
+@Mixin(Bee.class)
 public interface BeeEntityAccessor {
-    @Accessor("ticksSinceSting")
-    int getTicksSinceSting();
+    @Accessor("timeSinceSting")
+    int getTimeSinceSting();
 
-    @Accessor("ticksSinceSting")
-    void setTicksSinceSting(int ticks);
+    @Accessor("timeSinceSting")
+    void setTimeSinceSting(int ticks);
 
-    @Accessor("ticksSincePollination")
-    int getTicksSincePollination();
+    @Accessor("ticksWithoutNectarSinceExitingHive")
+    int getTicksWithoutNectarSinceExitingHive();
 
-    @Accessor("ticksSincePollination")
-    void setTicksSincePollination(int ticks);
+    @Accessor("ticksWithoutNectarSinceExitingHive")
+    void setTicksWithoutNectarSinceExitingHive(int ticks);
 
-    @Accessor("cannotEnterHiveTicks")
-    int getCannotEnterHiveTicks();
+    @Accessor("stayOutOfHiveCountdown")
+    int getStayOutOfHiveCountdown();
 
-    @Accessor("cannotEnterHiveTicks")
-    void setCannotEnterHiveTicks(int ticks);
+    @Accessor("stayOutOfHiveCountdown")
+    void setStayOutOfHiveCountdown(int ticks);
 
-    @Accessor("ticksLeftToFindHive")
-    int getTicksLeftToFindHive();
+    @Accessor("remainingCooldownBeforeLocatingNewHive")
+    int getRemainingCooldownBeforeLocatingNewHive();
 
-    @Accessor("ticksLeftToFindHive")
-    void setTicksLeftToFindHive(int ticks);
+    @Accessor("remainingCooldownBeforeLocatingNewHive")
+    void setRemainingCooldownBeforeLocatingNewHive(int ticks);
 
-    @Accessor("ticksUntilCanPollinate")
-    int getTicksUntilCanPollinate();
+    @Accessor("remainingCooldownBeforeLocatingNewFlower")
+    int getRemainingCooldownBeforeLocatingNewFlower();
 
-    @Accessor("ticksUntilCanPollinate")
-    void setTicksUntilCanPollinate(int ticks);
+    @Accessor("remainingCooldownBeforeLocatingNewFlower")
+    void setRemainingCooldownBeforeLocatingNewFlower(int ticks);
 }

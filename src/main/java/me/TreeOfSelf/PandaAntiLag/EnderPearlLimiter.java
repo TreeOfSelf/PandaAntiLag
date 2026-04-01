@@ -1,12 +1,12 @@
 package me.TreeOfSelf.PandaAntiLag;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,13 +33,11 @@ public class EnderPearlLimiter {
     private static void checkAndRemoveExcessEnderPearls(MinecraftServer server) {
         Map<UUID, List<Entity>> playerPearlMap = new HashMap<>();
 
-        for (ServerWorld world : server.getWorlds()) {
-            for (Entity entity : world.getEntitiesByType(EntityType.ENDER_PEARL, entity -> true)) {
-                if (entity instanceof EnderPearlEntity enderPearl) {
-                    if (enderPearl.getOwner() instanceof ServerPlayerEntity player) {
-                        UUID playerUuid = player.getUuid();
-                        playerPearlMap.computeIfAbsent(playerUuid, k -> new ArrayList<>()).add(entity);
-                    }
+        for (ServerLevel world : server.getAllLevels()) {
+            for (ThrownEnderpearl enderPearl : world.getEntities(EntityType.ENDER_PEARL, e -> true)) {
+                if (enderPearl.getOwner() instanceof ServerPlayer player) {
+                    UUID playerUuid = player.getUUID();
+                    playerPearlMap.computeIfAbsent(playerUuid, k -> new ArrayList<>()).add(enderPearl);
                 }
             }
         }
@@ -54,7 +52,6 @@ public class EnderPearlLimiter {
                 for (int i = 0; i < excessCount; i++) {
                     Entity pearl = pearls.get(i);
                     pearl.remove(Entity.RemovalReason.KILLED);
-                    pearl.discard();
                 }
             }
         }

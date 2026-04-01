@@ -4,35 +4,30 @@ import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import me.TreeOfSelf.PandaAntiLag.LagPos;
 import me.TreeOfSelf.PandaAntiLag.mixin.accessor.*;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.entity.ai.goal.EatGrassGoal;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.passive.*;
-import net.minecraft.entity.vehicle.VehicleEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerChunkManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.profiler.Profiler;
-import net.minecraft.util.profiler.Profilers;
-import net.minecraft.world.EntityList;
-import net.minecraft.world.tick.TickManager;
-import org.slf4j.Logger;
-import org.spongepowered.asm.mixin.Final;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.profiling.Profiler;
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.TickRateManager;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ai.goal.EatBlockGoal;
+import net.minecraft.world.entity.animal.armadillo.Armadillo;
+import net.minecraft.world.entity.animal.bee.Bee;
+import net.minecraft.world.entity.animal.chicken.Chicken;
+import net.minecraft.world.entity.animal.frog.Tadpole;
+import net.minecraft.world.entity.animal.sheep.Sheep;
+import net.minecraft.world.entity.animal.turtle.Turtle;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
+import net.minecraft.world.entity.vehicle.VehicleEntity;
+import net.minecraft.world.level.entity.EntityTickList;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import org.spongepowered.asm.mixin.Mixin;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
-
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -40,58 +35,63 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ServerWorld.class)
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+
+@Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin {
 
     @Unique
     private double tickCount = 0;
 
-    @Shadow public abstract TickManager getTickManager();
+    @Shadow
+    public abstract TickRateManager tickRateManager();
 
-    @Shadow public abstract void tickEntity(Entity entity);
+    @Shadow
+    public abstract void tickNonPassenger(Entity entity);
 
-    @Shadow public abstract boolean shouldTickChunkAt(ChunkPos pos);
+    @Shadow
+    public abstract net.minecraft.server.level.ServerChunkCache getChunkSource();
 
-    @Shadow @Final private ServerChunkManager chunkManager;
-    @Shadow @Final private static Logger LOGGER;
     @Unique
     private final HashMap<LagPos, ChunkEntityData> chunkEntityDataMap = new HashMap<>();
     @Unique
-    private Profiler profiler;
+    private ProfilerFiller profiler;
     @Unique
     private final Map<EntityType<?>, Integer> entityTypeCache = new HashMap<>();
 
-    @Unique  
+    @Unique
     public int getEntityType(Entity entity) {
         if (entity instanceof VehicleEntity) return ChunkEntityData.VEHICLE_TYPE;
         if (!(entity instanceof LivingEntity)) return ChunkEntityData.NULL_TYPE;
-        if (entity instanceof EnderDragonEntity) return ChunkEntityData.NULL_TYPE;
-        if (entity instanceof VillagerEntity) return ChunkEntityData.PEACEFUL_TYPE;
-        if (entity instanceof WanderingTraderEntity) return ChunkEntityData.PEACEFUL_TYPE;
+        if (entity instanceof EnderDragon) return ChunkEntityData.NULL_TYPE;
+        if (entity instanceof Villager) return ChunkEntityData.PEACEFUL_TYPE;
+        if (entity instanceof WanderingTrader) return ChunkEntityData.PEACEFUL_TYPE;
 
         return entityTypeCache.computeIfAbsent(entity.getType(), type -> {
-            SpawnGroup group = type.getSpawnGroup();
-            if (group == SpawnGroup.MONSTER) return ChunkEntityData.MONSTER_TYPE;
-            if (group == SpawnGroup.CREATURE || group == SpawnGroup.AXOLOTLS || 
-                group == SpawnGroup.UNDERGROUND_WATER_CREATURE || group == SpawnGroup.AMBIENT ||
-                group == SpawnGroup.WATER_AMBIENT || group == SpawnGroup.MISC ||
-                group == SpawnGroup.WATER_CREATURE) return ChunkEntityData.PEACEFUL_TYPE;
+            MobCategory category = type.getCategory();
+            if (category == MobCategory.MONSTER) return ChunkEntityData.MONSTER_TYPE;
+            if (category == MobCategory.CREATURE || category == MobCategory.AXOLOTLS ||
+                category == MobCategory.UNDERGROUND_WATER_CREATURE || category == MobCategory.AMBIENT ||
+                category == MobCategory.WATER_AMBIENT || category == MobCategory.MISC ||
+                category == MobCategory.WATER_CREATURE) return ChunkEntityData.PEACEFUL_TYPE;
             return ChunkEntityData.NULL_TYPE;
         });
     }
 
-    @Inject(method = "tick", at = @At(value = "HEAD"))
+    @Inject(method = "tick", at = @At("HEAD"))
     private void onTickStart(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
-        profiler =  Profilers.get();
+        profiler = Profiler.get();
     }
+
     @Unique
-    public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerWorld serverWorld, LagPos lagPos) {
+    public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerLevel serverLevel, LagPos lagPos) {
         int[] counts = new int[4];
-        
-        serverWorld.getEntitiesByType(
-            TypeFilter.instanceOf(Entity.class),
-            foundEntity -> {
-                LagPos entityLagPos = LagPos.fromChunkPos(foundEntity.getChunkPos());
+
+        serverLevel.getEntities(EntityTypeTest.forClass(Entity.class), foundEntity -> {
+                LagPos entityLagPos = LagPos.fromChunkPos(foundEntity.chunkPosition());
                 if (Math.abs(entityLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
                     Math.abs(entityLagPos.z - lagPos.z) < AntiLagSettings.regionBuffer) {
                     int entityType = getEntityType(foundEntity);
@@ -103,11 +103,11 @@ public abstract class ServerLevelMixin {
             }
         );
 
-        float tickTimes = serverWorld.getServer().getAverageTickTime();
+        float tickTimes = serverLevel.getServer().getCurrentSmoothedTickTime();
         for (int type = 1; type < 4; type++) {
             int entityCount = counts[type];
             int minimumRegion, staggerLenience;
-            
+
             if (type == ChunkEntityData.VEHICLE_TYPE) {
                 minimumRegion = AntiLagSettings.minimumRegionVehicle;
                 staggerLenience = AntiLagSettings.vehicleStaggerLenience;
@@ -115,9 +115,9 @@ public abstract class ServerLevelMixin {
                 minimumRegion = AntiLagSettings.minimumRegionMobs;
                 staggerLenience = AntiLagSettings.mobStaggerLenience;
             }
-            
+
             if (entityCount > minimumRegion) {
-                entityCount = (int) ((float) entityCount / staggerLenience + tickTimes/AntiLagSettings.tickTimeLenience);
+                entityCount = (int) ((float) entityCount / staggerLenience + tickTimes / AntiLagSettings.tickTimeLenience);
                 if (entityCount <= 0) entityCount = 1;
             } else {
                 entityCount = 1;
@@ -130,31 +130,32 @@ public abstract class ServerLevelMixin {
             method = "tick",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/EntityList;forEach(Ljava/util/function/Consumer;)V",
+                    target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V",
                     ordinal = 0
             )
     )
-    private <T> void redirectEntityTick(EntityList instance, Consumer<Entity> action) {
+    private void redirectEntityTick(EntityTickList instance, Consumer<Entity> action) {
         tickCount++;
-        ServerWorld serverWorld = (ServerWorld)(Object)this;
+        ServerLevel serverLevel = (ServerLevel) (Object) this;
         long currentTime = System.currentTimeMillis();
+        TickRateManager tickRateManager = this.tickRateManager();
 
         instance.forEach((entity) -> {
-            LagPos lagPos = LagPos.fromChunkPos(entity.getChunkPos());
+            LagPos lagPos = LagPos.fromChunkPos(entity.chunkPosition());
             ChunkEntityData chunkEntityData = chunkEntityDataMap.computeIfAbsent(lagPos, k -> new ChunkEntityData());
-            if(chunkEntityData.lastCheck==0 || currentTime > chunkEntityData.lastCheck) {
+            if (chunkEntityData.lastCheck == 0 || currentTime > chunkEntityData.lastCheck) {
                 chunkEntityData.lastCheck = currentTime + AntiLagSettings.updateInterval;
-                updateEntityCounts(chunkEntityData, serverWorld, lagPos);
+                updateEntityCounts(chunkEntityData, serverLevel, lagPos);
             }
 
             boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
 
             if (!entity.isRemoved() && (!skip || entity.getType() == EntityType.PLAYER || entity.hasControllingPassenger())) {
-                if (!getTickManager().shouldSkipTick(entity)) {
+                if (!tickRateManager.isEntityFrozen(entity)) {
                     profiler.push("checkDespawn");
                     entity.checkDespawn();
                     profiler.pop();
-                    if (entity instanceof ServerPlayerEntity || chunkManager.chunkLoadingManager.getLevelManager().shouldTickEntities(entity.getChunkPos().toLong())) {
+                    if (entity instanceof ServerPlayer || getChunkSource().chunkMap.getDistanceManager().inEntityTickingRange(entity.chunkPosition().pack())) {
                         Entity entity2 = entity.getVehicle();
                         if (entity2 != null) {
                             if (!entity2.isRemoved() && entity2.hasPassenger(entity)) {
@@ -164,83 +165,84 @@ public abstract class ServerLevelMixin {
                         }
 
                         profiler.push("tick");
-                        this.tickEntity(entity);
+                        serverLevel.guardEntityTick(this::tickNonPassenger, entity);
                         profiler.pop();
                     }
                 }
             } else if (skip) {
-                entity.age++;
+                entity.tickCount++;
 
-                if (entity instanceof PassiveEntity passiveEntity) {
-                    int i = passiveEntity.getBreedingAge();
+                if (entity instanceof AgeableMob passiveEntity) {
+                    int i = passiveEntity.getAge();
                     if (i < 0) {
                         ++i;
-                        passiveEntity.setBreedingAge(i);
+                        passiveEntity.setAge(i);
                     } else if (i > 0) {
                         --i;
-                        passiveEntity.setBreedingAge(i);
+                        passiveEntity.setAge(i);
                     }
                 }
 
                 switch (entity) {
-                    case SheepEntity sheepEntity -> {
-                        EatGrassGoal eatGrassGoal = ((SheepEntityAccessor) sheepEntity).getEatGrassGoal();
-                        if (eatGrassGoal != null) {
-                            if (eatGrassGoal.shouldContinue()) {
-                                eatGrassGoal.tick();
-                            } else if (eatGrassGoal.canStart()) {
-                                eatGrassGoal.start();
+                    case Sheep sheepEntity -> {
+                        EatBlockGoal eatBlockGoal = ((SheepEntityAccessor) sheepEntity).getEatBlockGoal();
+                        if (eatBlockGoal != null) {
+                            if (eatBlockGoal.canContinueToUse()) {
+                                eatBlockGoal.tick();
+                            } else if (eatBlockGoal.canUse()) {
+                                eatBlockGoal.start();
                             }
                         }
                     }
-                    case ArmadilloEntity armadilloEntity -> {
-                        int cooldown = ((ArmadilloEntityAccessor) armadilloEntity).getNextScuteShedCooldown();
+                    case Armadillo armadilloEntity -> {
+                        int cooldown = ((ArmadilloEntityAccessor) armadilloEntity).getScuteTime();
                         if (cooldown > 0) {
-                            ((ArmadilloEntityAccessor) armadilloEntity).setNextScuteShedCooldown(cooldown - 1);
+                            ((ArmadilloEntityAccessor) armadilloEntity).setScuteTime(cooldown - 1);
                         }
                     }
-                    case ChickenEntity chickenEntity -> chickenEntity.eggLayTime--;
-                    case TadpoleEntity tadpoleEntity -> {
-                        int tadPoleAge = ((TadpoleEntityAccessor) tadpoleEntity).getTadpoleAge();
-                        ((TadpoleEntityAccessor) tadpoleEntity).setTadpoleAge(tadPoleAge + 1);
+                    case Chicken chickenEntity -> chickenEntity.eggTime--;
+                    case Tadpole tadpoleEntity -> {
+                        int tadPoleAge = ((TadpoleEntityAccessor) tadpoleEntity).getAge();
+                        ((TadpoleEntityAccessor) tadpoleEntity).setAge(tadPoleAge + 1);
                     }
-                    case TurtleEntity turtleEntity -> {
-                        if (turtleEntity.isDiggingSand()) {
-                            int sandDiggingCounter = ((TurtleEntityAccessor) turtleEntity).getSandDiggingCounter();
-                            ((TurtleEntityAccessor) turtleEntity).setSandDiggingCounter(sandDiggingCounter + 1);
+                    case Turtle turtleEntity -> {
+                        if (turtleEntity.isLayingEgg()) {
+                            int layEggCounter = ((TurtleEntityAccessor) turtleEntity).getLayEggCounter();
+                            ((TurtleEntityAccessor) turtleEntity).setLayEggCounter(layEggCounter + 1);
                         }
                     }
-                    case VillagerEntity villagerEntity -> {
-                        if (!villagerEntity.hasCustomer()) {
-                            int levelUpTimer = ((VillagerEntityAccessor) villagerEntity).getLevelUpTimer();
-                            if (levelUpTimer > 0) {
-                                ((VillagerEntityAccessor) villagerEntity).setLevelUpTimer(levelUpTimer - 1);
+                    case Villager villagerEntity -> {
+                        if (!villagerEntity.isTrading()) {
+                            int updateMerchantTimer = ((VillagerEntityAccessor) villagerEntity).getUpdateMerchantTimer();
+                            if (updateMerchantTimer > 0) {
+                                ((VillagerEntityAccessor) villagerEntity).setUpdateMerchantTimer(updateMerchantTimer - 1);
                             }
                         }
                     }
-                    case BeeEntity beeEntity -> {
+                    case Bee beeEntity -> {
                         if (beeEntity.hasStung()) {
-                            int ticksSinceSting = ((BeeEntityAccessor) beeEntity).getTicksSinceSting();
-                            ((BeeEntityAccessor) beeEntity).setTicksSinceSting(ticksSinceSting + 1);
+                            int ticksSinceSting = ((BeeEntityAccessor) beeEntity).getTimeSinceSting();
+                            ((BeeEntityAccessor) beeEntity).setTimeSinceSting(ticksSinceSting + 1);
                         }
                         if (!beeEntity.hasNectar()) {
-                            int ticksSincePollination = ((BeeEntityAccessor) beeEntity).getTicksSincePollination();
-                            ((BeeEntityAccessor) beeEntity).setTicksSincePollination(ticksSincePollination + 1);
+                            int ticksSincePollination = ((BeeEntityAccessor) beeEntity).getTicksWithoutNectarSinceExitingHive();
+                            ((BeeEntityAccessor) beeEntity).setTicksWithoutNectarSinceExitingHive(ticksSincePollination + 1);
                         }
-                        int cannotEnterHiveTicks = ((BeeEntityAccessor) beeEntity).getCannotEnterHiveTicks();
+                        int cannotEnterHiveTicks = ((BeeEntityAccessor) beeEntity).getStayOutOfHiveCountdown();
                         if (cannotEnterHiveTicks > 0) {
-                            ((BeeEntityAccessor) beeEntity).setCannotEnterHiveTicks(cannotEnterHiveTicks - 1);
+                            ((BeeEntityAccessor) beeEntity).setStayOutOfHiveCountdown(cannotEnterHiveTicks - 1);
                         }
-                        int ticksLeftToFindHive = ((BeeEntityAccessor) beeEntity).getTicksLeftToFindHive();
+                        int ticksLeftToFindHive = ((BeeEntityAccessor) beeEntity).getRemainingCooldownBeforeLocatingNewHive();
                         if (ticksLeftToFindHive > 0) {
-                            ((BeeEntityAccessor) beeEntity).setTicksLeftToFindHive(ticksLeftToFindHive - 1);
+                            ((BeeEntityAccessor) beeEntity).setRemainingCooldownBeforeLocatingNewHive(ticksLeftToFindHive - 1);
                         }
-                        int ticksUntilCanPollinate = ((BeeEntityAccessor) beeEntity).getTicksUntilCanPollinate();
+                        int ticksUntilCanPollinate = ((BeeEntityAccessor) beeEntity).getRemainingCooldownBeforeLocatingNewFlower();
                         if (ticksUntilCanPollinate > 0) {
-                            ((BeeEntityAccessor) beeEntity).setTicksUntilCanPollinate(ticksUntilCanPollinate - 1);
+                            ((BeeEntityAccessor) beeEntity).setRemainingCooldownBeforeLocatingNewFlower(ticksUntilCanPollinate - 1);
                         }
                     }
-                    default -> {}
+                    default -> {
+                    }
                 }
             }
 

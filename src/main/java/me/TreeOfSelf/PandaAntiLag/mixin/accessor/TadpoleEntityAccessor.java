@@ -1,14 +1,14 @@
 package me.TreeOfSelf.PandaAntiLag.mixin.accessor;
 
-import net.minecraft.entity.passive.TadpoleEntity;
+import net.minecraft.world.entity.animal.frog.Tadpole;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(TadpoleEntity.class)
+@Mixin(Tadpole.class)
 public interface TadpoleEntityAccessor {
-    @Accessor("tadpoleAge")
-    int getTadpoleAge();
+    @Accessor("age")
+    int getAge();
 
-    @Accessor("tadpoleAge")
-    void setTadpoleAge(int age);
+    @Accessor("age")
+    void setAge(int age);
 }

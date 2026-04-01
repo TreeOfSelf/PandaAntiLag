@@ -1,17 +1,14 @@
 package me.TreeOfSelf.PandaAntiLag.mixin.accessor;
 
-import net.minecraft.entity.passive.TurtleEntity;
+import net.minecraft.world.entity.animal.turtle.Turtle;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(TurtleEntity.class)
+@Mixin(Turtle.class)
 public interface TurtleEntityAccessor {
-    @Accessor("sandDiggingCounter")
-    int getSandDiggingCounter();
+    @Accessor("layEggCounter")
+    int getLayEggCounter();
 
-    @Accessor("sandDiggingCounter")
-    void setSandDiggingCounter(int counter);
+    @Accessor("layEggCounter")
+    void setLayEggCounter(int counter);
 }
-
-
-

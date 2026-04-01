@@ -1,14 +1,14 @@
 package me.TreeOfSelf.PandaAntiLag.mixin.accessor;
 
-import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.world.entity.npc.villager.Villager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(VillagerEntity.class)
+@Mixin(Villager.class)
 public interface VillagerEntityAccessor {
-    @Accessor("levelUpTimer")
-    int getLevelUpTimer();
+    @Accessor("updateMerchantTimer")
+    int getUpdateMerchantTimer();
 
-    @Accessor("levelUpTimer")
-    void setLevelUpTimer(int timer);
+    @Accessor("updateMerchantTimer")
+    void setUpdateMerchantTimer(int timer);
 }

@@ -1,14 +1,14 @@
 package me.TreeOfSelf.PandaAntiLag.mixin.accessor;
 
-import net.minecraft.entity.passive.ArmadilloEntity;
+import net.minecraft.world.entity.animal.armadillo.Armadillo;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ArmadilloEntity.class)
+@Mixin(Armadillo.class)
 public interface ArmadilloEntityAccessor {
-    @Accessor("nextScuteShedCooldown")
-    int getNextScuteShedCooldown();
+    @Accessor("scuteTime")
+    int getScuteTime();
 
-    @Accessor("nextScuteShedCooldown")
-    void setNextScuteShedCooldown(int cooldown);
+    @Accessor("scuteTime")
+    void setScuteTime(int time);
 }
