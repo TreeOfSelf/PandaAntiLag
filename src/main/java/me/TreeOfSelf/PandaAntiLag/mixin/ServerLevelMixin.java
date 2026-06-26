@@ -12,6 +12,7 @@ import net.minecraft.world.TickRateManager;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.goal.EatBlockGoal;
@@ -150,7 +151,7 @@ public abstract class ServerLevelMixin {
 
             boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
 
-            if (!entity.isRemoved() && (!skip || entity.getType() == EntityType.PLAYER || entity.hasControllingPassenger())) {
+            if (!entity.isRemoved() && (!skip || entity.getType() == EntityTypes.PLAYER || entity.hasControllingPassenger())) {
                 if (!tickRateManager.isEntityFrozen(entity)) {
                     profiler.push("checkDespawn");
                     entity.checkDespawn();

@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 
 import java.util.ArrayList;
@@ -34,7 +35,7 @@ public class EnderPearlLimiter {
         Map<UUID, List<Entity>> playerPearlMap = new HashMap<>();
 
         for (ServerLevel world : server.getAllLevels()) {
-            for (ThrownEnderpearl enderPearl : world.getEntities(EntityType.ENDER_PEARL, e -> true)) {
+            for (ThrownEnderpearl enderPearl : world.getEntities(EntityTypes.ENDER_PEARL, e -> true)) {
                 if (enderPearl.getOwner() instanceof ServerPlayer player) {
                     UUID playerUuid = player.getUUID();
                     playerPearlMap.computeIfAbsent(playerUuid, k -> new ArrayList<>()).add(enderPearl);
