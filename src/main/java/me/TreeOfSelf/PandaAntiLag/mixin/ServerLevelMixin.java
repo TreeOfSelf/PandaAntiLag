@@ -212,14 +212,6 @@ public abstract class ServerLevelMixin {
                             ((TurtleEntityAccessor) turtleEntity).setLayEggCounter(layEggCounter + 1);
                         }
                     }
-                    case Villager villagerEntity -> {
-                        if (!villagerEntity.isTrading()) {
-                            int updateMerchantTimer = ((VillagerEntityAccessor) villagerEntity).getUpdateMerchantTimer();
-                            if (updateMerchantTimer > 0) {
-                                ((VillagerEntityAccessor) villagerEntity).setUpdateMerchantTimer(updateMerchantTimer - 1);
-                            }
-                        }
-                    }
                     case Bee beeEntity -> {
                         if (beeEntity.hasStung()) {
                             int ticksSinceSting = ((BeeEntityAccessor) beeEntity).getTimeSinceSting();

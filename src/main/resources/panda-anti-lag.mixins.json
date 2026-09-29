@@ -9,8 +9,7 @@
     "accessor.BeeEntityAccessor",
     "accessor.SheepEntityAccessor",
     "accessor.TadpoleEntityAccessor",
-    "accessor.TurtleEntityAccessor",
-    "accessor.VillagerEntityAccessor"
+    "accessor.TurtleEntityAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
