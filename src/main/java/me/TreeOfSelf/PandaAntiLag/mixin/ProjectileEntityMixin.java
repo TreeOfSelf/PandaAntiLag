@@ -64,8 +64,8 @@ public abstract class ProjectileEntityMixin extends Entity {
             });
 
             int over = nearbyEntities.size() - AntiLagSettings.projectileMax;
-            for (int index = 0; index <= over; index++) {
-                nearbyEntities.getFirst().remove(RemovalReason.KILLED);
+            for (int index = 0; index <= over && index < nearbyEntities.size(); index++) {
+                nearbyEntities.get(index).remove(RemovalReason.KILLED);
             }
             regionCounts.put(projectileType, AntiLagSettings.projectileMax);
         } else {

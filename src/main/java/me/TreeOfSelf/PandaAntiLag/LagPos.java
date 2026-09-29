@@ -1,20 +1,19 @@
 package me.TreeOfSelf.PandaAntiLag;
 
 import net.minecraft.world.level.ChunkPos;
-import java.util.HashMap;
-import java.util.Map;
 
 public class LagPos {
     public final int x;
     public final int z;
 
-    private static final Map<Long, LagPos> CACHE = new HashMap<>();
-
     public static LagPos fromChunkPos(ChunkPos chunkPos) {
         int x = chunkPos.x() >> AntiLagSettings.regionSizeBits;
         int z = chunkPos.z() >> AntiLagSettings.regionSizeBits;
-        long key = ((long) x << 32) | (z & 0xFFFFFFFFL);
-        return CACHE.computeIfAbsent(key, k -> new LagPos(x, z));
+        return new LagPos(x, z);
+    }
+
+    public static LagPos of(int x, int z) {
+        return new LagPos(x, z);
     }
 
     private LagPos(int x, int z) {

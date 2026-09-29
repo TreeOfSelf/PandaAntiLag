@@ -88,21 +88,38 @@ public abstract class ServerLevelMixin {
     }
 
     @Unique
-    public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerLevel serverLevel, LagPos lagPos) {
-        int[] counts = new int[4];
+    private long regionCountsTick = -1;
+    @Unique
+    private final HashMap<LagPos, int[]> regionCounts = new HashMap<>();
+    @Unique
+    private long lastPrune = 0;
 
-        serverLevel.getEntities(EntityTypeTest.forClass(Entity.class), foundEntity -> {
-                LagPos entityLagPos = LagPos.fromChunkPos(foundEntity.chunkPosition());
-                if (Math.abs(entityLagPos.x - lagPos.x) < AntiLagSettings.regionBuffer &&
-                    Math.abs(entityLagPos.z - lagPos.z) < AntiLagSettings.regionBuffer) {
-                    int entityType = getEntityType(foundEntity);
-                    if (entityType != ChunkEntityData.NULL_TYPE) {
-                        counts[entityType]++;
-                    }
-                }
-                return false;
+    // Count entities per region in one pass, at most once per tick, instead of scanning every entity for every region
+    @Unique
+    private void refreshRegionCounts(ServerLevel serverLevel) {
+        if (regionCountsTick == (long) tickCount) return;
+        regionCountsTick = (long) tickCount;
+        regionCounts.clear();
+        for (Entity foundEntity : serverLevel.getAllEntities()) {
+            int entityType = getEntityType(foundEntity);
+            if (entityType != ChunkEntityData.NULL_TYPE) {
+                regionCounts.computeIfAbsent(LagPos.fromChunkPos(foundEntity.chunkPosition()), k -> new int[4])[entityType]++;
             }
-        );
+        }
+    }
+
+    @Unique
+    public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerLevel serverLevel, LagPos lagPos) {
+        refreshRegionCounts(serverLevel);
+        int[] counts = new int[4];
+        int buffer = AntiLagSettings.regionBuffer - 1;
+        for (int dx = -buffer; dx <= buffer; dx++) {
+            for (int dz = -buffer; dz <= buffer; dz++) {
+                int[] regionCount = regionCounts.get(LagPos.of(lagPos.x + dx, lagPos.z + dz));
+                if (regionCount == null) continue;
+                for (int type = 1; type < 4; type++) counts[type] += regionCount[type];
+            }
+        }
 
         float tickTimes = serverLevel.getServer().getCurrentSmoothedTickTime();
         for (int type = 1; type < 4; type++) {
@@ -127,6 +144,14 @@ public abstract class ServerLevelMixin {
         }
     }
 
+    // Falling mobs (e.g. out of a mob farm) must keep full physics, otherwise they fall slower, pile up in the shaft
+    // and raise the stagger even more
+    @Unique
+    private static boolean isFalling(Entity entity) {
+        return !entity.onGround() && !entity.isNoGravity() && entity.getDeltaMovement().y < -0.1
+            && !entity.isInWater() && !entity.isInLava();
+    }
+
     @Redirect(
             method = "tick",
             at = @At(
@@ -141,6 +166,12 @@ public abstract class ServerLevelMixin {
         long currentTime = System.currentTimeMillis();
         TickRateManager tickRateManager = this.tickRateManager();
 
+        if (currentTime - lastPrune > AntiLagSettings.updateInterval) {
+            lastPrune = currentTime;
+            // Drop regions nothing has ticked in for a while so the map does not grow forever as players explore
+            chunkEntityDataMap.values().removeIf(data -> data.lastCheck < currentTime - AntiLagSettings.updateInterval * 2);
+        }
+
         instance.forEach((entity) -> {
             LagPos lagPos = LagPos.fromChunkPos(entity.chunkPosition());
             ChunkEntityData chunkEntityData = chunkEntityDataMap.computeIfAbsent(lagPos, k -> new ChunkEntityData());
@@ -150,6 +181,10 @@ public abstract class ServerLevelMixin {
             }
 
             boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
+
+            if (skip && AntiLagSettings.alwaysTickFallingEntities && isFalling(entity)) {
+                skip = false;
+            }
 
             if (!entity.isRemoved() && (!skip || entity.getType() == EntityTypes.PLAYER || entity.hasControllingPassenger())) {
                 if (!tickRateManager.isEntityFrozen(entity)) {
