@@ -2,7 +2,7 @@ package me.TreeOfSelf.PandaAntiLag.mixin;
 
 import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
-import me.TreeOfSelf.PandaAntiLag.LagPos;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.TreeOfSelf.PandaAntiLag.RegionMobCounts;
 import me.TreeOfSelf.PandaAntiLag.mixin.accessor.*;
 import net.minecraft.server.level.ServerLevel;
@@ -59,8 +59,6 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
     public abstract net.minecraft.server.level.ServerChunkCache getChunkSource();
 
     @Unique
-    private final HashMap<LagPos, ChunkEntityData> chunkEntityDataMap = new HashMap<>();
-    @Unique
     private ProfilerFiller profiler;
     @Unique
     private final Map<EntityType<?>, Integer> entityTypeCache = new HashMap<>();
@@ -89,75 +87,56 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
         profiler = Profiler.get();
     }
 
+    // Entities per region, counted while ticking them. Each tick uses the counts from the tick before,
+    // so the throttle reacts within a tick when lots of entities load in, without ever rescanning the world.
     @Unique
-    private long regionCountsTick = -1;
+    private Long2ObjectOpenHashMap<int[]> regionCounts = new Long2ObjectOpenHashMap<>();
     @Unique
-    private final HashMap<LagPos, int[]> regionCounts = new HashMap<>();
+    private Long2ObjectOpenHashMap<int[]> countingRegions = new Long2ObjectOpenHashMap<>();
+    // How many ticks apart each entity type ticks in a region, worked out once per tick from regionCounts
     @Unique
-    private long lastPrune = 0;
+    private final Long2ObjectOpenHashMap<int[]> regionDivisors = new Long2ObjectOpenHashMap<>();
 
-    // Count entities per region in one pass, at most once per tick, instead of scanning every entity for every region
     @Unique
-    private void refreshRegionCounts(ServerLevel serverLevel) {
-        if (regionCountsTick == (long) tickCount) return;
-        regionCountsTick = (long) tickCount;
-        regionCounts.clear();
-        for (Entity foundEntity : serverLevel.getAllEntities()) {
-            int entityType = getEntityType(foundEntity);
-            if (entityType != ChunkEntityData.NULL_TYPE) {
-                regionCounts.computeIfAbsent(LagPos.fromChunkPos(foundEntity.chunkPosition()), k -> new int[4])[entityType]++;
-            }
-        }
+    private static long regionKey(ChunkPos chunkPos) {
+        return ChunkPos.pack(chunkPos.x() >> AntiLagSettings.regionSizeBits, chunkPos.z() >> AntiLagSettings.regionSizeBits);
     }
 
-    @Override
-    public int pandaAntiLag$countNearby(ChunkPos chunkPos, int entityType) {
-        refreshRegionCounts((ServerLevel) (Object) this);
-        LagPos lagPos = LagPos.fromChunkPos(chunkPos);
+    @Unique
+    private int countAround(long regionKey, int entityType) {
+        int x = ChunkPos.getX(regionKey);
+        int z = ChunkPos.getZ(regionKey);
         int buffer = AntiLagSettings.regionBuffer - 1;
         int count = 0;
         for (int dx = -buffer; dx <= buffer; dx++) {
             for (int dz = -buffer; dz <= buffer; dz++) {
-                int[] regionCount = regionCounts.get(LagPos.of(lagPos.x + dx, lagPos.z + dz));
+                int[] regionCount = regionCounts.get(ChunkPos.pack(x + dx, z + dz));
                 if (regionCount != null) count += regionCount[entityType];
             }
         }
         return count;
     }
 
+    @Override
+    public int pandaAntiLag$countNearby(ChunkPos chunkPos, int entityType) {
+        return countAround(regionKey(chunkPos), entityType);
+    }
+
     @Unique
-    public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerLevel serverLevel, LagPos lagPos) {
-        refreshRegionCounts(serverLevel);
-        int[] counts = new int[4];
-        int buffer = AntiLagSettings.regionBuffer - 1;
-        for (int dx = -buffer; dx <= buffer; dx++) {
-            for (int dz = -buffer; dz <= buffer; dz++) {
-                int[] regionCount = regionCounts.get(LagPos.of(lagPos.x + dx, lagPos.z + dz));
-                if (regionCount == null) continue;
-                for (int type = 1; type < 4; type++) counts[type] += regionCount[type];
+    private void updateDivisors(float tickTimes) {
+        regionDivisors.clear();
+        for (long key : regionCounts.keySet()) {
+            int[] divisors = new int[4];
+            for (int type = 1; type < 4; type++) {
+                int entityCount = countAround(key, type);
+                boolean vehicle = type == ChunkEntityData.VEHICLE_TYPE;
+                int minimumRegion = vehicle ? AntiLagSettings.minimumRegionVehicle : AntiLagSettings.minimumRegionMobs;
+                int staggerLenience = vehicle ? AntiLagSettings.vehicleStaggerLenience : AntiLagSettings.mobStaggerLenience;
+                divisors[type] = entityCount > minimumRegion
+                        ? Math.max(1, (int) ((float) entityCount / staggerLenience + tickTimes / AntiLagSettings.tickTimeLenience))
+                        : 1;
             }
-        }
-
-        float tickTimes = serverLevel.getServer().getCurrentSmoothedTickTime();
-        for (int type = 1; type < 4; type++) {
-            int entityCount = counts[type];
-            int minimumRegion, staggerLenience;
-
-            if (type == ChunkEntityData.VEHICLE_TYPE) {
-                minimumRegion = AntiLagSettings.minimumRegionVehicle;
-                staggerLenience = AntiLagSettings.vehicleStaggerLenience;
-            } else {
-                minimumRegion = AntiLagSettings.minimumRegionMobs;
-                staggerLenience = AntiLagSettings.mobStaggerLenience;
-            }
-
-            if (entityCount > minimumRegion) {
-                entityCount = (int) ((float) entityCount / staggerLenience + tickTimes / AntiLagSettings.tickTimeLenience);
-                if (entityCount <= 0) entityCount = 1;
-            } else {
-                entityCount = 1;
-            }
-            chunkEntityData.setNearbyCount(type, entityCount);
+            regionDivisors.put(key, divisors);
         }
     }
 
@@ -172,24 +151,26 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
     private void redirectEntityTick(EntityTickList instance, Consumer<Entity> action) {
         tickCount++;
         ServerLevel serverLevel = (ServerLevel) (Object) this;
-        long currentTime = System.currentTimeMillis();
         TickRateManager tickRateManager = this.tickRateManager();
 
-        if (currentTime - lastPrune > AntiLagSettings.updateInterval) {
-            lastPrune = currentTime;
-            // Drop regions nothing has ticked in for a while so the map does not grow forever as players explore
-            chunkEntityDataMap.values().removeIf(data -> data.lastCheck < currentTime - AntiLagSettings.updateInterval * 2);
-        }
+        // Last tick's counts become the ones in use, and counting starts fresh for this tick
+        Long2ObjectOpenHashMap<int[]> counted = countingRegions;
+        countingRegions = regionCounts;
+        countingRegions.clear();
+        regionCounts = counted;
+        updateDivisors(serverLevel.getServer().getCurrentSmoothedTickTime());
 
         instance.forEach((entity) -> {
-            LagPos lagPos = LagPos.fromChunkPos(entity.chunkPosition());
-            ChunkEntityData chunkEntityData = chunkEntityDataMap.computeIfAbsent(lagPos, k -> new ChunkEntityData());
-            if (chunkEntityData.lastCheck == 0 || currentTime > chunkEntityData.lastCheck) {
-                chunkEntityData.lastCheck = currentTime + AntiLagSettings.updateInterval;
-                updateEntityCounts(chunkEntityData, serverLevel, lagPos);
+            long key = regionKey(entity.chunkPosition());
+            int entityType = getEntityType(entity);
+            int divisor = 1;
+            if (entityType != ChunkEntityData.NULL_TYPE) {
+                if (!entity.isRemoved()) countingRegions.computeIfAbsent(key, k -> new int[4])[entityType]++;
+                int[] divisors = regionDivisors.get(key);
+                if (divisors != null) divisor = divisors[entityType];
             }
 
-            boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
+            boolean skip = (tickCount + entity.getId()) % divisor != 0;
 
             if (!entity.isRemoved() && (!skip || entity.getType() == EntityTypes.PLAYER || entity.hasControllingPassenger())) {
                 if (!tickRateManager.isEntityFrozen(entity)) {

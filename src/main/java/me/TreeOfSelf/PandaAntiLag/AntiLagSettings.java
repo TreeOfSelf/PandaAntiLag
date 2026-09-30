@@ -22,7 +22,6 @@ public class AntiLagSettings {
     public static int mobStaggerLenience = 200;
     public static int vehicleStaggerLenience = 200;
     public static int tickTimeLenience = 10;
-    public static long updateInterval = 10000;
     // Portals stop spawning piglins when nearby monsters >= minimumRegionMobs * this (0 disables)
     public static double portalSpawnCapMultiplier = 2.0;
     // Most portal-loaded areas one player can be responsible for at once (0 disables)
@@ -44,7 +43,6 @@ public class AntiLagSettings {
                 mobStaggerLenience = json.has("mobStaggerLenience") ? json.get("mobStaggerLenience").getAsInt() : mobStaggerLenience;
                 vehicleStaggerLenience = json.has("vehicleStaggerLenience") ? json.get("vehicleStaggerLenience").getAsInt() : vehicleStaggerLenience;
                 tickTimeLenience = json.has("tickTimeLenience") ? json.get("tickTimeLenience").getAsInt() : tickTimeLenience;
-                updateInterval = json.has("updateInterval") ? json.get("updateInterval").getAsLong() : updateInterval;
                 portalSpawnCapMultiplier = json.has("portalSpawnCapMultiplier") ? json.get("portalSpawnCapMultiplier").getAsDouble() : portalSpawnCapMultiplier;
                 maxPortalLoadsPerPlayer = json.has("maxPortalLoadsPerPlayer") ? json.get("maxPortalLoadsPerPlayer").getAsInt() : maxPortalLoadsPerPlayer;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
@@ -66,7 +64,6 @@ public class AntiLagSettings {
         json.addProperty("mobStaggerLenience", mobStaggerLenience);
         json.addProperty("vehicleStaggerLenience", vehicleStaggerLenience);
         json.addProperty("tickTimeLenience", tickTimeLenience);
-        json.addProperty("updateInterval", updateInterval);
         json.addProperty("portalSpawnCapMultiplier", portalSpawnCapMultiplier);
         json.addProperty("maxPortalLoadsPerPlayer", maxPortalLoadsPerPlayer);
         json.addProperty("enderPearlUpdateInterval", enderPearlUpdateInterval);
