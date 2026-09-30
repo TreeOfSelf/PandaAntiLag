@@ -5,6 +5,8 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 
@@ -30,9 +32,9 @@ public class PortalOwnership {
     // Owner of the entity currently teleporting (a stack, since passengers teleport inside their vehicle's teleport)
     private static final Deque<UUID> teleporting = new ArrayDeque<>();
 
-    // level is null for teleports that shouldn't be capped (players)
-    public static void startTeleport(ServerLevel level, ChunkPos from) {
-        UUID owner = level == null ? null : findOwner(level, from);
+    // Players aren't capped; they load chunks around themselves anyway
+    public static void startTeleport(Entity entity) {
+        UUID owner = entity.level() instanceof ServerLevel level && !(entity instanceof Player) ? findOwner(level, entity.chunkPosition()) : null;
         teleporting.push(owner == null ? NO_OWNER : owner);
     }
 
