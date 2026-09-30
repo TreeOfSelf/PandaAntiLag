@@ -3,6 +3,7 @@ package me.TreeOfSelf.PandaAntiLag.mixin;
 import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import me.TreeOfSelf.PandaAntiLag.LagPos;
+import me.TreeOfSelf.PandaAntiLag.RegionMobCounts;
 import me.TreeOfSelf.PandaAntiLag.mixin.accessor.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,6 +27,7 @@ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.entity.vehicle.VehicleEntity;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.entity.EntityTickList;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,7 +44,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 @Mixin(ServerLevel.class)
-public abstract class ServerLevelMixin {
+public abstract class ServerLevelMixin implements RegionMobCounts {
 
     @Unique
     private double tickCount = 0;
@@ -108,6 +110,21 @@ public abstract class ServerLevelMixin {
         }
     }
 
+    @Override
+    public int pandaAntiLag$countNearby(ChunkPos chunkPos, int entityType) {
+        refreshRegionCounts((ServerLevel) (Object) this);
+        LagPos lagPos = LagPos.fromChunkPos(chunkPos);
+        int buffer = AntiLagSettings.regionBuffer - 1;
+        int count = 0;
+        for (int dx = -buffer; dx <= buffer; dx++) {
+            for (int dz = -buffer; dz <= buffer; dz++) {
+                int[] regionCount = regionCounts.get(LagPos.of(lagPos.x + dx, lagPos.z + dz));
+                if (regionCount != null) count += regionCount[entityType];
+            }
+        }
+        return count;
+    }
+
     @Unique
     public void updateEntityCounts(ChunkEntityData chunkEntityData, ServerLevel serverLevel, LagPos lagPos) {
         refreshRegionCounts(serverLevel);
@@ -144,14 +161,6 @@ public abstract class ServerLevelMixin {
         }
     }
 
-    // Falling mobs (e.g. out of a mob farm) must keep full physics, otherwise they fall slower, pile up in the shaft
-    // and raise the stagger even more
-    @Unique
-    private static boolean isFalling(Entity entity) {
-        return !entity.onGround() && !entity.isNoGravity() && entity.getDeltaMovement().y < -0.1
-            && !entity.isInWater() && !entity.isInLava();
-    }
-
     @Redirect(
             method = "tick",
             at = @At(
@@ -181,10 +190,6 @@ public abstract class ServerLevelMixin {
             }
 
             boolean skip = (tickCount + entity.getId()) % chunkEntityData.getNearbyCount(getEntityType(entity)) != 0;
-
-            if (skip && AntiLagSettings.alwaysTickFallingEntities && isFalling(entity)) {
-                skip = false;
-            }
 
             if (!entity.isRemoved() && (!skip || entity.getType() == EntityTypes.PLAYER || entity.hasControllingPassenger())) {
                 if (!tickRateManager.isEntityFrozen(entity)) {

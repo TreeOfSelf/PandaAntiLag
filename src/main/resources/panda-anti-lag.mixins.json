@@ -3,6 +3,7 @@
   "package": "me.TreeOfSelf.PandaAntiLag.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "NetherPortalBlockMixin",
     "ProjectileEntityMixin",
     "ServerLevelMixin",
     "accessor.ArmadilloEntityAccessor",

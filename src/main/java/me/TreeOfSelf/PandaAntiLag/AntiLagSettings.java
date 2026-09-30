@@ -23,7 +23,8 @@ public class AntiLagSettings {
     public static int vehicleStaggerLenience = 200;
     public static int tickTimeLenience = 10;
     public static long updateInterval = 10000;
-    public static boolean alwaysTickFallingEntities = true;
+    // Portals stop spawning piglins when nearby monsters >= minimumRegionMobs * this (0 disables)
+    public static double portalSpawnCapMultiplier = 2.0;
     public static long enderPearlUpdateInterval = 10000;
     public static int maxEnderPearlsPerPlayer = 20;
 
@@ -42,7 +43,7 @@ public class AntiLagSettings {
                 vehicleStaggerLenience = json.has("vehicleStaggerLenience") ? json.get("vehicleStaggerLenience").getAsInt() : vehicleStaggerLenience;
                 tickTimeLenience = json.has("tickTimeLenience") ? json.get("tickTimeLenience").getAsInt() : tickTimeLenience;
                 updateInterval = json.has("updateInterval") ? json.get("updateInterval").getAsLong() : updateInterval;
-                alwaysTickFallingEntities = json.has("alwaysTickFallingEntities") ? json.get("alwaysTickFallingEntities").getAsBoolean() : alwaysTickFallingEntities;
+                portalSpawnCapMultiplier = json.has("portalSpawnCapMultiplier") ? json.get("portalSpawnCapMultiplier").getAsDouble() : portalSpawnCapMultiplier;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
                 maxEnderPearlsPerPlayer = json.has("maxEnderPearlsPerPlayer") ? json.get("maxEnderPearlsPerPlayer").getAsInt() : maxEnderPearlsPerPlayer;
             } catch (IOException ignored) {
@@ -63,7 +64,7 @@ public class AntiLagSettings {
         json.addProperty("vehicleStaggerLenience", vehicleStaggerLenience);
         json.addProperty("tickTimeLenience", tickTimeLenience);
         json.addProperty("updateInterval", updateInterval);
-        json.addProperty("alwaysTickFallingEntities", alwaysTickFallingEntities);
+        json.addProperty("portalSpawnCapMultiplier", portalSpawnCapMultiplier);
         json.addProperty("enderPearlUpdateInterval", enderPearlUpdateInterval);
         json.addProperty("maxEnderPearlsPerPlayer", maxEnderPearlsPerPlayer);
 
