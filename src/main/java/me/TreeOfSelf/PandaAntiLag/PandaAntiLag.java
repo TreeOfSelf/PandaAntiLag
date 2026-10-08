@@ -1,6 +1,7 @@
 package me.TreeOfSelf.PandaAntiLag;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,5 +14,6 @@ public class PandaAntiLag implements ModInitializer {
 		LOGGER.info("PandaAntiLag Started!");
 		AntiLagSettings.loadConfig();
 		EnderPearlLimiter.init();
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> PandaAntiLagCommand.register(dispatcher));
 	}
 }

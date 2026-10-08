@@ -4,6 +4,7 @@ import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.TreeOfSelf.PandaAntiLag.RegionMobCounts;
+import me.TreeOfSelf.PandaAntiLag.ThrottledMovement;
 import me.TreeOfSelf.PandaAntiLag.mixin.accessor.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -106,7 +107,9 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
     private int countAround(long regionKey, int entityType) {
         int x = ChunkPos.getX(regionKey);
         int z = ChunkPos.getZ(regionKey);
-        int buffer = AntiLagSettings.regionBuffer - 1;
+        // Same reach as projectiles: regionBuffer 1 is this region and the 8 around it, so a farm sitting on a
+        // region border is counted as one crowd instead of being split into small ones that never throttle
+        int buffer = AntiLagSettings.regionBuffer;
         int count = 0;
         for (int dx = -buffer; dx <= buffer; dx++) {
             for (int dz = -buffer; dz <= buffer; dz++) {
@@ -171,6 +174,9 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
             }
 
             boolean skip = (tickCount + entity.getId()) % divisor != 0;
+            boolean movementOnly = skip && AntiLagSettings.movementWhileThrottled && !entity.isRemoved()
+                    && entity instanceof ThrottledMovement mob && mob.pandaAntiLag$needsMovementTick();
+            if (movementOnly) skip = false;
 
             if (!entity.isRemoved() && (!skip || entity.getType() == EntityTypes.PLAYER || entity.hasControllingPassenger())) {
                 if (!tickRateManager.isEntityFrozen(entity)) {
@@ -187,7 +193,16 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
                         }
 
                         profiler.push("tick");
-                        serverLevel.guardEntityTick(this::tickNonPassenger, entity);
+                        if (movementOnly) {
+                            ((ThrottledMovement) entity).pandaAntiLag$setMovementOnly(true);
+                            try {
+                                serverLevel.guardEntityTick(this::tickNonPassenger, entity);
+                            } finally {
+                                ((ThrottledMovement) entity).pandaAntiLag$setMovementOnly(false);
+                            }
+                        } else {
+                            serverLevel.guardEntityTick(this::tickNonPassenger, entity);
+                        }
                         profiler.pop();
                     }
                 }

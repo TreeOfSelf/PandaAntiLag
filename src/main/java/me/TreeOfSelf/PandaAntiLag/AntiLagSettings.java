@@ -26,6 +26,10 @@ public class AntiLagSettings {
     public static double portalSpawnCapMultiplier = 2.0;
     // Most portal-loaded areas one player can be responsible for at once (0 disables)
     public static int maxPortalLoadsPerPlayer = 10;
+    // Falling, swimming and path-following mobs still move on ticks the throttle skips, only their AI is throttled
+    public static boolean movementWhileThrottled = true;
+    // Mobs that would despawn far from players also despawn when their dimension has no players at all
+    public static boolean despawnWithoutPlayers = true;
     public static long enderPearlUpdateInterval = 10000;
     public static int maxEnderPearlsPerPlayer = 20;
 
@@ -45,6 +49,8 @@ public class AntiLagSettings {
                 tickTimeLenience = json.has("tickTimeLenience") ? json.get("tickTimeLenience").getAsInt() : tickTimeLenience;
                 portalSpawnCapMultiplier = json.has("portalSpawnCapMultiplier") ? json.get("portalSpawnCapMultiplier").getAsDouble() : portalSpawnCapMultiplier;
                 maxPortalLoadsPerPlayer = json.has("maxPortalLoadsPerPlayer") ? json.get("maxPortalLoadsPerPlayer").getAsInt() : maxPortalLoadsPerPlayer;
+                movementWhileThrottled = json.has("movementWhileThrottled") ? json.get("movementWhileThrottled").getAsBoolean() : movementWhileThrottled;
+                despawnWithoutPlayers = json.has("despawnWithoutPlayers") ? json.get("despawnWithoutPlayers").getAsBoolean() : despawnWithoutPlayers;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
                 maxEnderPearlsPerPlayer = json.has("maxEnderPearlsPerPlayer") ? json.get("maxEnderPearlsPerPlayer").getAsInt() : maxEnderPearlsPerPlayer;
             } catch (IOException ignored) {
@@ -66,6 +72,8 @@ public class AntiLagSettings {
         json.addProperty("tickTimeLenience", tickTimeLenience);
         json.addProperty("portalSpawnCapMultiplier", portalSpawnCapMultiplier);
         json.addProperty("maxPortalLoadsPerPlayer", maxPortalLoadsPerPlayer);
+        json.addProperty("movementWhileThrottled", movementWhileThrottled);
+        json.addProperty("despawnWithoutPlayers", despawnWithoutPlayers);
         json.addProperty("enderPearlUpdateInterval", enderPearlUpdateInterval);
         json.addProperty("maxEnderPearlsPerPlayer", maxEnderPearlsPerPlayer);
 
