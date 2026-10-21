@@ -18,12 +18,8 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.goal.EatBlockGoal;
-import net.minecraft.world.entity.animal.armadillo.Armadillo;
-import net.minecraft.world.entity.animal.bee.Bee;
-import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.entity.animal.frog.Tadpole;
 import net.minecraft.world.entity.animal.sheep.Sheep;
-import net.minecraft.world.entity.animal.turtle.Turtle;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
@@ -206,10 +202,13 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
                         profiler.pop();
                     }
                 }
-            } else if (skip) {
+            } else if (skip && !entity.isRemoved() && !tickRateManager.isEntityFrozen(entity)
+                    && getChunkSource().chunkMap.getDistanceManager().inEntityTickingRange(entity.chunkPosition().pack())) {
+                // Mirror the normal path's guards. Without these, loaded-but-not-ticking and frozen
+                // entities still had their timers advanced, which is how tadpoles reached Age 295000.
                 entity.tickCount++;
 
-                if (entity instanceof AgeableMob passiveEntity) {
+                if (entity instanceof AgeableMob passiveEntity && !passiveEntity.isAgeLocked()) {
                     int i = passiveEntity.getAge();
                     if (i < 0) {
                         ++i;
@@ -231,45 +230,21 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
                             }
                         }
                     }
-                    case Armadillo armadilloEntity -> {
-                        int cooldown = ((ArmadilloEntityAccessor) armadilloEntity).getScuteTime();
-                        if (cooldown > 0) {
-                            ((ArmadilloEntityAccessor) armadilloEntity).setScuteTime(cooldown - 1);
-                        }
-                    }
-                    case Chicken chickenEntity -> chickenEntity.eggTime--;
                     case Tadpole tadpoleEntity -> {
-                        int tadPoleAge = ((TadpoleEntityAccessor) tadpoleEntity).getAge();
-                        ((TadpoleEntityAccessor) tadpoleEntity).setAge(tadPoleAge + 1);
-                    }
-                    case Turtle turtleEntity -> {
-                        if (turtleEntity.isLayingEgg()) {
-                            int layEggCounter = ((TurtleEntityAccessor) turtleEntity).getLayEggCounter();
-                            ((TurtleEntityAccessor) turtleEntity).setLayEggCounter(layEggCounter + 1);
+                        // Golden dandelions must keep working: a locked tadpole does not age.
+                        if (!tadpoleEntity.isAgeLocked()) {
+                            // Use the real setter, not the field accessor. Tadpole#setAge runs the
+                            // age >= ticksToBeFrog check and converts to a frog. Writing the field
+                            // directly is what left tadpoles alive at Age 295000.
+                            TadpoleEntityAccessor accessor = (TadpoleEntityAccessor) tadpoleEntity;
+                            accessor.invokeSetAge(accessor.getAge() + 1);
                         }
                     }
-                    case Bee beeEntity -> {
-                        if (beeEntity.hasStung()) {
-                            int ticksSinceSting = ((BeeEntityAccessor) beeEntity).getTimeSinceSting();
-                            ((BeeEntityAccessor) beeEntity).setTimeSinceSting(ticksSinceSting + 1);
-                        }
-                        if (!beeEntity.hasNectar()) {
-                            int ticksSincePollination = ((BeeEntityAccessor) beeEntity).getTicksWithoutNectarSinceExitingHive();
-                            ((BeeEntityAccessor) beeEntity).setTicksWithoutNectarSinceExitingHive(ticksSincePollination + 1);
-                        }
-                        int cannotEnterHiveTicks = ((BeeEntityAccessor) beeEntity).getStayOutOfHiveCountdown();
-                        if (cannotEnterHiveTicks > 0) {
-                            ((BeeEntityAccessor) beeEntity).setStayOutOfHiveCountdown(cannotEnterHiveTicks - 1);
-                        }
-                        int ticksLeftToFindHive = ((BeeEntityAccessor) beeEntity).getRemainingCooldownBeforeLocatingNewHive();
-                        if (ticksLeftToFindHive > 0) {
-                            ((BeeEntityAccessor) beeEntity).setRemainingCooldownBeforeLocatingNewHive(ticksLeftToFindHive - 1);
-                        }
-                        int ticksUntilCanPollinate = ((BeeEntityAccessor) beeEntity).getRemainingCooldownBeforeLocatingNewFlower();
-                        if (ticksUntilCanPollinate > 0) {
-                            ((BeeEntityAccessor) beeEntity).setRemainingCooldownBeforeLocatingNewFlower(ticksUntilCanPollinate - 1);
-                        }
-                    }
+                    // Chicken eggTime, Armadillo scuteTime, Turtle layEggCounter and Bee
+                    // timeSinceSting are deliberately NOT advanced here. Their side effects
+                    // (laying an egg, shedding a scute, placing turtle eggs, the sting death
+                    // roll) live inline in vanilla aiStep/customServerAiStep. Bumping only the
+                    // counter skips those side effects, so these wait for a real tick instead.
                     default -> {
                     }
                 }

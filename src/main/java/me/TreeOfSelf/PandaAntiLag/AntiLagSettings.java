@@ -53,10 +53,28 @@ public class AntiLagSettings {
                 despawnWithoutPlayers = json.has("despawnWithoutPlayers") ? json.get("despawnWithoutPlayers").getAsBoolean() : despawnWithoutPlayers;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
                 maxEnderPearlsPerPlayer = json.has("maxEnderPearlsPerPlayer") ? json.get("maxEnderPearlsPerPlayer").getAsInt() : maxEnderPearlsPerPlayer;
-            } catch (IOException ignored) {
+            } catch (Exception ignored) {
+                // A malformed config should not take the server down. Fall back to defaults.
             }
         }
+        sanitize();
         saveConfig();
+    }
+
+    private static void sanitize() {
+        // These feed divisions and array sizes. A 0 lenience used to produce an infinite
+        // divisor, which made entities effectively stop ticking. Clamp everything sensible.
+        regionSizeBits = Math.max(0, Math.min(10, regionSizeBits));
+        regionBuffer = Math.max(0, regionBuffer);
+        minimumRegionMobs = Math.max(0, minimumRegionMobs);
+        minimumRegionVehicle = Math.max(0, minimumRegionVehicle);
+        projectileMax = Math.max(0, projectileMax);
+        mobStaggerLenience = Math.max(1, mobStaggerLenience);
+        vehicleStaggerLenience = Math.max(1, vehicleStaggerLenience);
+        tickTimeLenience = Math.max(1, tickTimeLenience);
+        maxPortalLoadsPerPlayer = Math.max(0, maxPortalLoadsPerPlayer);
+        enderPearlUpdateInterval = Math.max(1000L, enderPearlUpdateInterval);
+        maxEnderPearlsPerPlayer = Math.max(0, maxEnderPearlsPerPlayer);
     }
 
     public static void saveConfig() {
