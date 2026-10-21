@@ -10,11 +10,8 @@ public interface TadpoleEntityAccessor {
     @Accessor("age")
     int getAge();
 
-    @Accessor("age")
-    void setAge(int age);
-
-    // Calls Tadpole#setAge(int), which runs the age >= ticksToBeFrog check and ageUp().
-    // Writing the field directly skips that conversion and strands tadpoles at Age > 24000.
+    // Calls the real Tadpole#setAge(int), which runs the age >= ticksToBeFrog check and ageUp().
+    // Do NOT add an @Accessor named setAge here: it shadows the real method and the invoker calls the field setter.
     @Invoker("setAge")
     void invokeSetAge(int age);
 }
