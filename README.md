@@ -17,17 +17,30 @@ config/PandaAntiLag.json generated at runtime
 
 ```
 {
-  "regionSize": 6,  //The square dimensions of how many chunks to consider a "lag region"
-  "regionBuffer": 1, //How far lag regions bleed into each other for checking entity counts
+  "regionSizeBits": 2, //Lag regions are 2^this chunks wide (2 = 4x4 chunks)
+  "regionBuffer": 1, //How many neighbouring regions are counted together with a region
   "minimumRegionMobs": 75, //Minimum amount of mobs in a region before it can be affected by mob tick staggering
   "minimumRegionVehicle": 75, //Minimum amount of vehicles in a region before it can be affected by vehicle tick staggering
   "projectileMax": 150, //Max amount of single type of projectile entity (like arrows) allowed in lag region
   "mobStaggerLenience": 200, //Higher values = mob count affects mob staggering less
   "vehicleStaggerLenience": 200, //Higher values = vehicle count affects vehicle staggering less
-  "tickTimeLenience": 10, //Higher values = MSPT affects mob and vehicle staggering less
-  "updateInterval": 10000, //How often to allow chunks to count entities (ms)
+  "tickTimeLenience": 10, //Higher values = MSPT affects mob and vehicle staggering less (crowded regions only)
+  "portalSpawnCapMultiplier": 2.0, //Portals stop spawning piglins when nearby monsters >= minimumRegionMobs * this (0 = off)
+  "maxPortalLoadsPerPlayer": 10, //Most portal-loaded areas one player can be responsible for (0 = off)
+  "movementWhileThrottled": true, //Falling, swimming and path-following mobs still move on ticks the throttle skips
+  "skipPushWhileThrottled": true, //Those movement-only ticks don't push the mobs around them
+  "movementTickMinSpeed": 0.2, //Horizontal speed (blocks/tick) that earns a throttled mob a movement tick
+  "despawnWithoutPlayers": true, //Mobs that would despawn far from players also despawn when their dimension has no players
   "enderPearlUpdateInterval": 10000, //How often to check for a players max enderpearls (ms)
-  "maxEnderPearlsPerPlayer": 20 //Max amount of ender pearls a player can have loaded
+  "maxEnderPearlsPerPlayer": 20, //Max amount of ender pearls a player can have loaded
+  "waitForChunksBeforePlayerTick": true, //A player's tick waits for the chunks around them instead of freezing the server
+  "waitForChunksBeforePlayerMove": true, //Same for movement packets
+  "asyncEntityUpgrade": true, //Upgrade old stored mobs on a worker thread when their chunk loads
+  "overloadStartMspt": 50.0, //Last resort: when the median of the last 100 ticks is over this, slow every mob (0 = off, otherwise at least 50)
+  "overloadStepMspt": 5.0, //Each step over overloadStartMspt makes mobs tick one time less often
+  "overloadMaxDivisor": 10, //Most the last resort can slow mobs
+  "spawnOverloadMaxDivisor": 1, //Also slow natural spawning while the last resort is active, at most this much (1 = never)
+  "poiSearchBackoffTicks": 0 //Villagers ignore beds/job sites/bells they couldn't reach for this long, plus up to the same again (0 = vanilla)
 }
 ```
 

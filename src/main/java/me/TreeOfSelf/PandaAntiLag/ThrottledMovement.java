@@ -1,5 +1,7 @@
 package me.TreeOfSelf.PandaAntiLag;
 
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+
 // Implemented by Mob (via MobMixin). On ticks the throttle skips, mobs that are airborne, knocked back, in water or
 // walking a path still get a movement-only tick, so they keep moving at full speed and don't pile up.
 // Being jostled by the crowd around them does not count: in a dense pile every mob is always being pushed a little,
@@ -11,6 +13,6 @@ public interface ThrottledMovement {
 
     boolean pandaAntiLag$isMovementOnly();
 
-    // Game time until which this mob skips POI path searches, per kind: 0 bed, 1 meeting point, 2 job site
-    long[] pandaAntiLag$poiBackoffUntil();
+    // POIs this mob could not path to -> game time until which its POI searches leave them out
+    Long2LongOpenHashMap pandaAntiLag$poiBackoffUntil();
 }

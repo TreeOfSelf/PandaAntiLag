@@ -13,6 +13,7 @@ public class AntiLagSettings {
     private static final File CONFIG_FILE = new File("./config/PandaAntiLag.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    // Unused, kept so old configs keep their key; regionSizeBits sets the size
     public static int regionSize = 6;
     public static int regionSizeBits = 2;
     public static int regionBuffer = 1;
@@ -38,20 +39,24 @@ public class AntiLagSettings {
     public static boolean waitForChunksBeforePlayerMove = true;
     // A throttled mob only gets a movement tick for horizontal speed above this (blocks/tick): knockback yes, crowd jostling no
     public static double movementTickMinSpeed = 0.2;
-    // Overload throttle: once the server's average tick takes longer than overloadStartMspt, every mob's AI (not
-    // only mobs in dense spots) runs 1 + (mspt - start) / step times less often, up to overloadMaxDivisor.
-    // Mobs going after a player stay at full speed. 0 start disables.
-    public static double overloadStartMspt = 25;
+    // Overload throttle, a last resort for when the server can't hold 20 TPS: once the median of the last 100 ticks
+    // is over overloadStartMspt, every mob (not only mobs in dense spots) ticks 1 + ceil((mspt - start) / step) times
+    // less often, up to overloadMaxDivisor. Skipped ticks are whole ticks apart from movement. Mobs going after a
+    // player stay at full speed. The median ignores single lag spikes. 0 disables; anything else is at least 50.
+    public static double overloadStartMspt = 50;
     public static double overloadStepMspt = 5;
     public static int overloadMaxDivisor = 10;
     // Run the data fixer for stored mobs on a worker thread when their chunk loads, instead of the main thread
     public static boolean asyncEntityUpgrade = true;
-    // After a villager fails to path to any bed / job site / meeting point, it waits this many ticks (+ up to the
-    // same again) before searching for that kind again. 0 = vanilla (retry every 1-2 seconds)
-    public static int poiSearchBackoffTicks = 200;
-    // While overloaded, natural spawn attempts in each chunk also only run every overload-divisor ticks, capped
-    // at this (1 = never throttle spawning). The every-400-ticks animal spawn pass is never skipped.
-    public static int spawnOverloadMaxDivisor = 4;
+    // Beds / job sites / meeting points a villager could not path to are left out of that villager's searches for
+    // this many ticks (+ up to the same again). Others, including newly placed ones, are still found right away.
+    // Changes vanilla behaviour: one that becomes reachable is noticed later. 0 = vanilla
+    public static int poiSearchBackoffTicks = 0;
+    // While the overload throttle is active, natural spawn attempts in each chunk can also run only every
+    // overload-divisor ticks, capped at this. 1 = never throttle spawning. The 400-tick animal pass is never skipped.
+    public static int spawnOverloadMaxDivisor = 1;
+    // Movement-only ticks of throttled mobs don't push the mobs around them (full ticks still do)
+    public static boolean skipPushWhileThrottled = true;
     // Set every tick from the server's average tick time (not a config value)
     public static volatile int currentOverloadDivisor = 1;
 
@@ -82,6 +87,7 @@ public class AntiLagSettings {
                 asyncEntityUpgrade = json.has("asyncEntityUpgrade") ? json.get("asyncEntityUpgrade").getAsBoolean() : asyncEntityUpgrade;
                 poiSearchBackoffTicks = json.has("poiSearchBackoffTicks") ? json.get("poiSearchBackoffTicks").getAsInt() : poiSearchBackoffTicks;
                 spawnOverloadMaxDivisor = json.has("spawnOverloadMaxDivisor") ? json.get("spawnOverloadMaxDivisor").getAsInt() : spawnOverloadMaxDivisor;
+                skipPushWhileThrottled = json.has("skipPushWhileThrottled") ? json.get("skipPushWhileThrottled").getAsBoolean() : skipPushWhileThrottled;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
                 maxEnderPearlsPerPlayer = json.has("maxEnderPearlsPerPlayer") ? json.get("maxEnderPearlsPerPlayer").getAsInt() : maxEnderPearlsPerPlayer;
             } catch (Exception ignored) {
@@ -106,6 +112,11 @@ public class AntiLagSettings {
         maxPortalLoadsPerPlayer = Math.max(0, maxPortalLoadsPerPlayer);
         enderPearlUpdateInterval = Math.max(1000L, enderPearlUpdateInterval);
         maxEnderPearlsPerPlayer = Math.max(0, maxEnderPearlsPerPlayer);
+        // Under 50 ms the server still holds 20 TPS, so there is nothing to rescue (2.5.3 saved 25 into configs)
+        overloadStartMspt = overloadStartMspt > 0 ? Math.max(50.0, overloadStartMspt) : 0;
+        overloadMaxDivisor = Math.max(1, overloadMaxDivisor);
+        spawnOverloadMaxDivisor = Math.max(1, spawnOverloadMaxDivisor);
+        poiSearchBackoffTicks = Math.max(0, poiSearchBackoffTicks);
     }
 
     public static void saveConfig() {
@@ -134,6 +145,7 @@ public class AntiLagSettings {
         json.addProperty("asyncEntityUpgrade", asyncEntityUpgrade);
         json.addProperty("poiSearchBackoffTicks", poiSearchBackoffTicks);
         json.addProperty("spawnOverloadMaxDivisor", spawnOverloadMaxDivisor);
+        json.addProperty("skipPushWhileThrottled", skipPushWhileThrottled);
 
         try {
             if (!CONFIG_FILE.getParentFile().exists()) {

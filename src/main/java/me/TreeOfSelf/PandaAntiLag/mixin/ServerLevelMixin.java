@@ -3,6 +3,7 @@ package me.TreeOfSelf.PandaAntiLag.mixin;
 import me.TreeOfSelf.PandaAntiLag.ChunkEntityData;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import me.TreeOfSelf.PandaAntiLag.OverloadThrottle;
 import me.TreeOfSelf.PandaAntiLag.RegionMobCounts;
 import me.TreeOfSelf.PandaAntiLag.ThrottledMovement;
 import me.TreeOfSelf.PandaAntiLag.mixin.accessor.*;
@@ -163,13 +164,8 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
         updateDivisors(mspt);
         // The regional throttle only sees dense spots. With many players spread over many ordinary-density areas
         // the server can fall seconds behind while no region crosses minimumRegionMobs; this catches that.
-        int overloadDivisor = 1;
-        if (AntiLagSettings.overloadStartMspt > 0 && mspt > AntiLagSettings.overloadStartMspt) {
-            overloadDivisor = Math.min(AntiLagSettings.overloadMaxDivisor,
-                    1 + (int) ((mspt - AntiLagSettings.overloadStartMspt) / Math.max(1.0, AntiLagSettings.overloadStepMspt)));
-        }
-        final int overload = overloadDivisor;
-        AntiLagSettings.currentOverloadDivisor = overloadDivisor;
+        final int overload = OverloadThrottle.divisor(serverLevel.getServer());
+        AntiLagSettings.currentOverloadDivisor = overload;
 
         instance.forEach((entity) -> {
             long key = regionKey(entity.chunkPosition());

@@ -1,6 +1,7 @@
 package me.TreeOfSelf.PandaAntiLag.mixin;
 
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
+import me.TreeOfSelf.PandaAntiLag.LoadedChunks;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.util.Mth;
@@ -38,7 +39,7 @@ public abstract class PlayerMoveUnloadedChunkMixin {
 		AABB here = p.getBoundingBox();
 		AABB there = here.move(x - p.getX(), y - p.getY(), z - p.getZ());
 		AABB swept = here.minmax(there).inflate(1.0);
-		if (p.level().hasChunksAt(Mth.floor(swept.minX), Mth.floor(swept.minZ), Mth.ceil(swept.maxX), Mth.ceil(swept.maxZ))) return;
+		if (LoadedChunks.allReady(p.level(), swept)) return;
 
 		double dx = x - p.getX(), dy = y - p.getY(), dz = z - p.getZ();
 		if (dx * dx + dy * dy + dz * dz < 1.0E-4) {

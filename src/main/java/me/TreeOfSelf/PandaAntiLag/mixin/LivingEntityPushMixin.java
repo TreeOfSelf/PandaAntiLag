@@ -1,5 +1,6 @@
 package me.TreeOfSelf.PandaAntiLag.mixin;
 
+import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import me.TreeOfSelf.PandaAntiLag.ThrottledMovement;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,6 +16,6 @@ public abstract class LivingEntityPushMixin {
 
 	@Inject(method = "pushEntities", at = @At("HEAD"), cancellable = true)
 	private void pandaAntiLag$skipPushWhenMovementOnly(CallbackInfo ci) {
-		if (this instanceof ThrottledMovement mob && mob.pandaAntiLag$isMovementOnly()) ci.cancel();
+		if (AntiLagSettings.skipPushWhileThrottled && this instanceof ThrottledMovement mob && mob.pandaAntiLag$isMovementOnly()) ci.cancel();
 	}
 }
