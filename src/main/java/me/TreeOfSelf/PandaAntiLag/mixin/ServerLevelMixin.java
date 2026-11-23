@@ -17,6 +17,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.ai.goal.EatBlockGoal;
 import net.minecraft.world.entity.animal.frog.Tadpole;
 import net.minecraft.world.entity.animal.sheep.Sheep;
@@ -157,7 +159,17 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
         countingRegions = regionCounts;
         countingRegions.clear();
         regionCounts = counted;
-        updateDivisors(serverLevel.getServer().getCurrentSmoothedTickTime());
+        float mspt = serverLevel.getServer().getCurrentSmoothedTickTime();
+        updateDivisors(mspt);
+        // The regional throttle only sees dense spots. With many players spread over many ordinary-density areas
+        // the server can fall seconds behind while no region crosses minimumRegionMobs; this catches that.
+        int overloadDivisor = 1;
+        if (AntiLagSettings.overloadStartMspt > 0 && mspt > AntiLagSettings.overloadStartMspt) {
+            overloadDivisor = Math.min(AntiLagSettings.overloadMaxDivisor,
+                    1 + (int) ((mspt - AntiLagSettings.overloadStartMspt) / Math.max(1.0, AntiLagSettings.overloadStepMspt)));
+        }
+        final int overload = overloadDivisor;
+        AntiLagSettings.currentOverloadDivisor = overloadDivisor;
 
         instance.forEach((entity) -> {
             long key = regionKey(entity.chunkPosition());
@@ -167,6 +179,8 @@ public abstract class ServerLevelMixin implements RegionMobCounts {
                 if (!entity.isRemoved()) countingRegions.computeIfAbsent(key, k -> new int[4])[entityType]++;
                 int[] divisors = regionDivisors.get(key);
                 if (divisors != null) divisor = divisors[entityType];
+                if (overload > divisor && entityType != ChunkEntityData.VEHICLE_TYPE
+                        && !(entity instanceof Mob mob && mob.getTarget() instanceof Player)) divisor = overload;
             }
 
             boolean skip = (tickCount + entity.getId()) % divisor != 0;

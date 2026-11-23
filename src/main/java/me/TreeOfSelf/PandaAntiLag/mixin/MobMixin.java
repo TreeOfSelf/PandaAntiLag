@@ -4,6 +4,7 @@ import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import me.TreeOfSelf.PandaAntiLag.ThrottledMovement;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.control.JumpControl;
@@ -29,6 +30,13 @@ public abstract class MobMixin extends Entity implements ThrottledMovement {
 
     @Unique
     private boolean movementOnly = false;
+    @Unique
+    private final long[] poiBackoffUntil = new long[3];
+
+    @Override
+    public long[] pandaAntiLag$poiBackoffUntil() {
+        return this.poiBackoffUntil;
+    }
 
     public MobMixin(EntityType<?> type, Level level) {
         super(type, level);
@@ -37,12 +45,14 @@ public abstract class MobMixin extends Entity implements ThrottledMovement {
     @Override
     public boolean pandaAntiLag$needsMovementTick() {
         if (!this.onGround()) return true;
-        // Knockback, explosions and other pushes
-        if (this.getDeltaMovement().horizontalDistanceSqr() > 1.0E-4) return true;
+        // Knockback, explosions, water currents and pistons; crowd jostling stays under this speed
+        double min = AntiLagSettings.movementTickMinSpeed;
+        if (this.getDeltaMovement().horizontalDistanceSqr() > min * min) return true;
         if (this.isInWater()) {
             MobCategory category = this.getType().getCategory();
             if (category != MobCategory.WATER_CREATURE && category != MobCategory.WATER_AMBIENT &&
-                category != MobCategory.UNDERGROUND_WATER_CREATURE && category != MobCategory.AXOLOTLS) return true;
+                category != MobCategory.UNDERGROUND_WATER_CREATURE && category != MobCategory.AXOLOTLS
+                && this.getType() != EntityTypes.TURTLE) return true;
         }
         return !this.navigation.isDone();
     }
@@ -50,6 +60,11 @@ public abstract class MobMixin extends Entity implements ThrottledMovement {
     @Override
     public void pandaAntiLag$setMovementOnly(boolean movementOnly) {
         this.movementOnly = movementOnly;
+    }
+
+    @Override
+    public boolean pandaAntiLag$isMovementOnly() {
+        return this.movementOnly;
     }
 
     // Keep following the current path, but skip sensing, targeting, goals and brains

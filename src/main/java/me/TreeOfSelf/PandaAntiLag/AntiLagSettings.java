@@ -32,6 +32,28 @@ public class AntiLagSettings {
     public static boolean despawnWithoutPlayers = true;
     public static long enderPearlUpdateInterval = 10000;
     public static int maxEnderPearlsPerPlayer = 20;
+    // Skip a player's entity tick while they touch a chunk that isn't loaded yet (vanilla does this for spectators)
+    public static boolean waitForChunksBeforePlayerTick = true;
+    // Don't collision-move a player into chunks that aren't loaded yet (that load blocks the whole server)
+    public static boolean waitForChunksBeforePlayerMove = true;
+    // A throttled mob only gets a movement tick for horizontal speed above this (blocks/tick): knockback yes, crowd jostling no
+    public static double movementTickMinSpeed = 0.2;
+    // Overload throttle: once the server's average tick takes longer than overloadStartMspt, every mob's AI (not
+    // only mobs in dense spots) runs 1 + (mspt - start) / step times less often, up to overloadMaxDivisor.
+    // Mobs going after a player stay at full speed. 0 start disables.
+    public static double overloadStartMspt = 25;
+    public static double overloadStepMspt = 5;
+    public static int overloadMaxDivisor = 10;
+    // Run the data fixer for stored mobs on a worker thread when their chunk loads, instead of the main thread
+    public static boolean asyncEntityUpgrade = true;
+    // After a villager fails to path to any bed / job site / meeting point, it waits this many ticks (+ up to the
+    // same again) before searching for that kind again. 0 = vanilla (retry every 1-2 seconds)
+    public static int poiSearchBackoffTicks = 200;
+    // While overloaded, natural spawn attempts in each chunk also only run every overload-divisor ticks, capped
+    // at this (1 = never throttle spawning). The every-400-ticks animal spawn pass is never skipped.
+    public static int spawnOverloadMaxDivisor = 4;
+    // Set every tick from the server's average tick time (not a config value)
+    public static volatile int currentOverloadDivisor = 1;
 
     public static void loadConfig() {
         if (CONFIG_FILE.exists()) {
@@ -51,6 +73,15 @@ public class AntiLagSettings {
                 maxPortalLoadsPerPlayer = json.has("maxPortalLoadsPerPlayer") ? json.get("maxPortalLoadsPerPlayer").getAsInt() : maxPortalLoadsPerPlayer;
                 movementWhileThrottled = json.has("movementWhileThrottled") ? json.get("movementWhileThrottled").getAsBoolean() : movementWhileThrottled;
                 despawnWithoutPlayers = json.has("despawnWithoutPlayers") ? json.get("despawnWithoutPlayers").getAsBoolean() : despawnWithoutPlayers;
+                waitForChunksBeforePlayerTick = json.has("waitForChunksBeforePlayerTick") ? json.get("waitForChunksBeforePlayerTick").getAsBoolean() : waitForChunksBeforePlayerTick;
+                waitForChunksBeforePlayerMove = json.has("waitForChunksBeforePlayerMove") ? json.get("waitForChunksBeforePlayerMove").getAsBoolean() : waitForChunksBeforePlayerMove;
+                movementTickMinSpeed = json.has("movementTickMinSpeed") ? json.get("movementTickMinSpeed").getAsDouble() : movementTickMinSpeed;
+                overloadStartMspt = json.has("overloadStartMspt") ? json.get("overloadStartMspt").getAsDouble() : overloadStartMspt;
+                overloadStepMspt = json.has("overloadStepMspt") ? json.get("overloadStepMspt").getAsDouble() : overloadStepMspt;
+                overloadMaxDivisor = json.has("overloadMaxDivisor") ? json.get("overloadMaxDivisor").getAsInt() : overloadMaxDivisor;
+                asyncEntityUpgrade = json.has("asyncEntityUpgrade") ? json.get("asyncEntityUpgrade").getAsBoolean() : asyncEntityUpgrade;
+                poiSearchBackoffTicks = json.has("poiSearchBackoffTicks") ? json.get("poiSearchBackoffTicks").getAsInt() : poiSearchBackoffTicks;
+                spawnOverloadMaxDivisor = json.has("spawnOverloadMaxDivisor") ? json.get("spawnOverloadMaxDivisor").getAsInt() : spawnOverloadMaxDivisor;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
                 maxEnderPearlsPerPlayer = json.has("maxEnderPearlsPerPlayer") ? json.get("maxEnderPearlsPerPlayer").getAsInt() : maxEnderPearlsPerPlayer;
             } catch (Exception ignored) {
@@ -94,6 +125,15 @@ public class AntiLagSettings {
         json.addProperty("despawnWithoutPlayers", despawnWithoutPlayers);
         json.addProperty("enderPearlUpdateInterval", enderPearlUpdateInterval);
         json.addProperty("maxEnderPearlsPerPlayer", maxEnderPearlsPerPlayer);
+        json.addProperty("waitForChunksBeforePlayerTick", waitForChunksBeforePlayerTick);
+        json.addProperty("waitForChunksBeforePlayerMove", waitForChunksBeforePlayerMove);
+        json.addProperty("movementTickMinSpeed", movementTickMinSpeed);
+        json.addProperty("overloadStartMspt", overloadStartMspt);
+        json.addProperty("overloadStepMspt", overloadStepMspt);
+        json.addProperty("overloadMaxDivisor", overloadMaxDivisor);
+        json.addProperty("asyncEntityUpgrade", asyncEntityUpgrade);
+        json.addProperty("poiSearchBackoffTicks", poiSearchBackoffTicks);
+        json.addProperty("spawnOverloadMaxDivisor", spawnOverloadMaxDivisor);
 
         try {
             if (!CONFIG_FILE.getParentFile().exists()) {

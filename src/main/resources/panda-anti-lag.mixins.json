@@ -4,8 +4,11 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "EntityPortalMixin",
+    "LivingEntityPushMixin",
     "MobMixin",
     "NetherPortalBlockMixin",
+    "PlayerMoveUnloadedChunkMixin",
+    "PlayerUnloadedChunkMixin",
     "ProjectileEntityMixin",
     "ServerLevelMixin",
     "ThrownEnderpearlPortalMixin",
@@ -13,9 +16,12 @@
     "accessor.BeeEntityAccessor",
     "accessor.SheepEntityAccessor",
     "accessor.TadpoleEntityAccessor",
-    "accessor.TurtleEntityAccessor"
+    "accessor.TurtleEntityAccessor",
+    "EntityStorageAsyncUpgradeMixin",
+    "AcquirePoiBackoffMixin",
+    "SpawnOverloadMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-	}
+  }
 }
