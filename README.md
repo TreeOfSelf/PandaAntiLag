@@ -39,8 +39,7 @@ config/PandaAntiLag.json generated at runtime
   "overloadStartMspt": 50.0, //Last resort: when the median of the last 100 ticks is over this, slow every mob (0 = off, otherwise at least 50)
   "overloadStepMspt": 5.0, //Each step over overloadStartMspt makes mobs tick one time less often
   "overloadMaxDivisor": 10, //Most the last resort can slow mobs
-  "spawnOverloadMaxDivisor": 1, //Also slow natural spawning while the last resort is active, at most this much (1 = never)
-  "poiSearchBackoffTicks": 0 //Villagers ignore beds/job sites/bells they couldn't reach for this long, plus up to the same again (0 = vanilla)
+  "spawnOverloadMaxDivisor": 1 //Also slow natural spawning while the last resort is active, at most this much (1 = never)
 }
 ```
 

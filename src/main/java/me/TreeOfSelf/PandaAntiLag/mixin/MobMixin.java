@@ -1,6 +1,5 @@
 package me.TreeOfSelf.PandaAntiLag.mixin;
 
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import me.TreeOfSelf.PandaAntiLag.AntiLagSettings;
 import me.TreeOfSelf.PandaAntiLag.ThrottledMovement;
 import net.minecraft.world.entity.Entity;
@@ -31,14 +30,6 @@ public abstract class MobMixin extends Entity implements ThrottledMovement {
 
     @Unique
     private boolean movementOnly = false;
-    @Unique
-    private Long2LongOpenHashMap poiBackoffUntil;
-
-    @Override
-    public Long2LongOpenHashMap pandaAntiLag$poiBackoffUntil() {
-        if (this.poiBackoffUntil == null) this.poiBackoffUntil = new Long2LongOpenHashMap();
-        return this.poiBackoffUntil;
-    }
 
     public MobMixin(EntityType<?> type, Level level) {
         super(type, level);

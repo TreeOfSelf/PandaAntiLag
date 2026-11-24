@@ -48,10 +48,6 @@ public class AntiLagSettings {
     public static int overloadMaxDivisor = 10;
     // Run the data fixer for stored mobs on a worker thread when their chunk loads, instead of the main thread
     public static boolean asyncEntityUpgrade = true;
-    // Beds / job sites / meeting points a villager could not path to are left out of that villager's searches for
-    // this many ticks (+ up to the same again). Others, including newly placed ones, are still found right away.
-    // Changes vanilla behaviour: one that becomes reachable is noticed later. 0 = vanilla
-    public static int poiSearchBackoffTicks = 0;
     // While the overload throttle is active, natural spawn attempts in each chunk can also run only every
     // overload-divisor ticks, capped at this. 1 = never throttle spawning. The 400-tick animal pass is never skipped.
     public static int spawnOverloadMaxDivisor = 1;
@@ -85,7 +81,6 @@ public class AntiLagSettings {
                 overloadStepMspt = json.has("overloadStepMspt") ? json.get("overloadStepMspt").getAsDouble() : overloadStepMspt;
                 overloadMaxDivisor = json.has("overloadMaxDivisor") ? json.get("overloadMaxDivisor").getAsInt() : overloadMaxDivisor;
                 asyncEntityUpgrade = json.has("asyncEntityUpgrade") ? json.get("asyncEntityUpgrade").getAsBoolean() : asyncEntityUpgrade;
-                poiSearchBackoffTicks = json.has("poiSearchBackoffTicks") ? json.get("poiSearchBackoffTicks").getAsInt() : poiSearchBackoffTicks;
                 spawnOverloadMaxDivisor = json.has("spawnOverloadMaxDivisor") ? json.get("spawnOverloadMaxDivisor").getAsInt() : spawnOverloadMaxDivisor;
                 skipPushWhileThrottled = json.has("skipPushWhileThrottled") ? json.get("skipPushWhileThrottled").getAsBoolean() : skipPushWhileThrottled;
                 enderPearlUpdateInterval = json.has("enderPearlUpdateInterval") ? json.get("enderPearlUpdateInterval").getAsLong() : enderPearlUpdateInterval;
@@ -116,7 +111,6 @@ public class AntiLagSettings {
         overloadStartMspt = overloadStartMspt > 0 ? Math.max(50.0, overloadStartMspt) : 0;
         overloadMaxDivisor = Math.max(1, overloadMaxDivisor);
         spawnOverloadMaxDivisor = Math.max(1, spawnOverloadMaxDivisor);
-        poiSearchBackoffTicks = Math.max(0, poiSearchBackoffTicks);
     }
 
     public static void saveConfig() {
@@ -143,7 +137,6 @@ public class AntiLagSettings {
         json.addProperty("overloadStepMspt", overloadStepMspt);
         json.addProperty("overloadMaxDivisor", overloadMaxDivisor);
         json.addProperty("asyncEntityUpgrade", asyncEntityUpgrade);
-        json.addProperty("poiSearchBackoffTicks", poiSearchBackoffTicks);
         json.addProperty("spawnOverloadMaxDivisor", spawnOverloadMaxDivisor);
         json.addProperty("skipPushWhileThrottled", skipPushWhileThrottled);
 
